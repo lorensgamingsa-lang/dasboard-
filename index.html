@@ -154,8 +154,9 @@
                 </div>
                 <span class="text-xs text-slate-400" id="ultimaActualizacion"></span>
                 <button onclick="logoutAdmin()"
-                        class="px-4 py-2 rounded-lg text-sm text-red-400 hover:bg-red-900 hover:bg-opacity-30 transition-all border border-red-800">
-                    🚪 Salir
+                        class="px-4 py-2 flex items-center gap-1.5 rounded-lg text-sm text-red-400 hover:bg-red-900 hover:bg-opacity-30 transition-all border border-red-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Salir
                 </button>
             </div>
         </div>
@@ -336,6 +337,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Rentabilidad por Chapa -->
+        <div class="card-glass rounded-xl p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-white">🏷️ Rentabilidad por Chapa</h3>
+                <span class="text-xs bg-orange-900 text-orange-300 px-2 py-1 rounded-full font-semibold">Impuesto: $37.50 / chapa</span>
+            </div>
+            <div id="adRentabilidadChapasContainer">
+                <div class="text-center py-8 text-slate-400">Cargando datos...</div>
+            </div>
+        </div>
     </div>
 
     <!-- ===== SECCIÓN: COLECTAS ===== -->
@@ -424,6 +436,9 @@ const INSFORGE_CONFIG = {
 let insforge = null;
 let adminActual = null;
 let realtimeSubscriptions = [];
+let pollingInterval = null;
+let reAuthInterval = null;
+let consecutiveErrors = 0;
 
 // ========== INSFORGE SDK ==========
 async function inicializarInsForge() {
@@ -856,6 +871,7 @@ async function cargarDashboardAdmin() {
         crearGraficaPerdidas(listaColectas, listaMovimientos);
         crearGraficaComparativa(listaColectas, fechaInicio, fechaFin);
         crearTablaMaquinas(listaColectas);
+        crearTablaRentabilidadChapasAdmin(listaColectas);
 
     } catch (e) {
         console.error('Error cargando dashboard:', e);
@@ -1108,8 +1124,11 @@ function crearTablaMaquinas(colectas) {
         const maquinas = c.datos_json?.maquinas || [];
         maquinas.forEach(m => {
             const juego = m.juego || 'Sin juego';
+            const entrada = (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+            const salida = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
+            const ganancia = entrada - salida;
             if (!mapa[juego]) mapa[juego] = { ganancia: 0, cantidad: 0 };
-            mapa[juego].ganancia += parseFloat(m.ganancia) || 0;
+            mapa[juego].ganancia += ganancia;
             mapa[juego].cantidad += 1;
         });
     });
@@ -1131,6 +1150,116 @@ function crearTablaMaquinas(colectas) {
             <td class="px-2 py-2 text-right font-mono text-green-400">$${m.ganancia.toFixed(2)}</td>
         </tr>
     `).join('');
+}
+
+// ========== RENTABILIDAD POR CHAPA ==========
+function crearTablaRentabilidadChapasAdmin(colectas) {
+    const container = document.getElementById('adRentabilidadChapasContainer');
+    if (!container) return;
+
+    const IMPUESTO_POR_CHAPA = 37.5;
+    const datosPorChapa = {};
+
+    colectas.forEach(c => {
+        const maquinas = c.datos_json?.maquinas || [];
+        maquinas.forEach(m => {
+            const chapa = (m.chapa || 'sin-chapa').toLowerCase().trim();
+            const juego = m.juego || 'Sin nombre';
+            const entrada = (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+            const salida = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
+            const ganancia = entrada - salida;
+            if (!datosPorChapa[chapa]) {
+                datosPorChapa[chapa] = { chapa, juego, gananciaBruta: 0, apariciones: 0 };
+            }
+            datosPorChapa[chapa].gananciaBruta += ganancia;
+            datosPorChapa[chapa].apariciones += 1;
+            datosPorChapa[chapa].juego = juego;
+        });
+    });
+
+    const ranking = Object.values(datosPorChapa)
+        .map(item => {
+            const impuesto = item.apariciones * IMPUESTO_POR_CHAPA;
+            const gananciaNeta = item.gananciaBruta - impuesto;
+            return {
+                chapa: item.chapa,
+                juego: item.juego,
+                gananciaBruta: item.gananciaBruta,
+                apariciones: item.apariciones,
+                impuesto,
+                gananciaNeta,
+                cubrioImpuesto: item.gananciaBruta >= impuesto
+            };
+        })
+        .sort((a, b) => b.gananciaNeta - a.gananciaNeta);
+
+    if (ranking.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-400">No hay datos de chapas para el período seleccionado</div>`;
+        return;
+    }
+
+    const totalChapas = ranking.length;
+    const cubrieron = ranking.filter(r => r.cubrioImpuesto).length;
+    const noCubrieron = totalChapas - cubrieron;
+    const totalImpuestos = ranking.reduce((s, r) => s + r.impuesto, 0);
+    const totalNeta = ranking.reduce((s, r) => s + r.gananciaNeta, 0);
+
+    container.innerHTML = `
+        <div class="grid grid-cols-2 gap-2 mb-4 sm:grid-cols-4">
+            <div class="bg-slate-800 bg-opacity-60 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold text-white">${totalChapas}</div>
+                <div class="text-xs text-slate-400 mt-0.5">Chapas analizadas</div>
+            </div>
+            <div class="bg-slate-800 bg-opacity-60 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold ${totalNeta >= 0 ? 'text-green-400' : 'text-red-400'}">$${totalNeta.toFixed(2)}</div>
+                <div class="text-xs text-slate-400 mt-0.5">Ganancia neta total</div>
+            </div>
+            <div class="bg-green-900 bg-opacity-40 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold text-green-400">${cubrieron}</div>
+                <div class="text-xs text-slate-400 mt-0.5">Cubrieron impuesto</div>
+            </div>
+            <div class="bg-red-900 bg-opacity-40 rounded-lg p-3 text-center">
+                <div class="text-xl font-bold text-red-400">${noCubrieron}</div>
+                <div class="text-xs text-slate-400 mt-0.5">No cubrieron</div>
+            </div>
+        </div>
+        <div class="overflow-auto" style="max-height: 360px;">
+            <table class="w-full text-white text-xs">
+                <thead class="sticky top-0 bg-slate-800">
+                    <tr>
+                        <th class="px-2 py-2 text-left">#</th>
+                        <th class="px-2 py-2 text-left">Chapa</th>
+                        <th class="px-2 py-2 text-left">Juego</th>
+                        <th class="px-2 py-2 text-right">Bruta</th>
+                        <th class="px-2 py-2 text-right">Imp.</th>
+                        <th class="px-2 py-2 text-right">Neta</th>
+                        <th class="px-2 py-2 text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${ranking.map((item, i) => `
+                    <tr class="border-b border-slate-700 hover:bg-slate-700 transition-colors">
+                        <td class="px-2 py-2 font-bold text-purple-400">${i + 1}</td>
+                        <td class="px-2 py-2 font-mono text-yellow-300 uppercase">${item.chapa}</td>
+                        <td class="px-2 py-2 text-slate-200">${item.juego} <span class="text-slate-500">(${item.apariciones}x)</span></td>
+                        <td class="px-2 py-2 text-right font-mono text-slate-300">$${item.gananciaBruta.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-right font-mono text-orange-400">-$${item.impuesto.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-right font-mono font-bold ${item.gananciaNeta >= 0 ? 'text-green-400' : 'text-red-400'}">$${item.gananciaNeta.toFixed(2)}</td>
+                        <td class="px-2 py-2 text-center">
+                            ${item.cubrioImpuesto
+                                ? '<span class="bg-green-900 text-green-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">OK</span>'
+                                : '<span class="bg-red-900 text-red-300 px-1.5 py-0.5 rounded-full text-xs font-semibold">NO</span>'
+                            }
+                        </td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3 text-right text-xs text-slate-500">
+            Total impuestos generados en el período: <span class="text-orange-400 font-semibold">$${totalImpuestos.toFixed(2)}</span>
+        </div>
+    `;
 }
 
 // ========== COLECTAS ADMIN ==========
@@ -1249,15 +1378,19 @@ async function verDetalleColecta(id) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${maquinas.map(m => `
+                            ${maquinas.map(m => {
+                                const ent = (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+                                const sal = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
+                                const gan = ent - sal;
+                                return `
                                 <tr class="border-b border-slate-700">
                                     <td class="px-2 py-1">${m.juego || '-'}</td>
                                     <td class="px-2 py-1 text-slate-400">${m.chapa || '-'}</td>
-                                    <td class="px-2 py-1 text-right">${formatCurrency(m.resultadoEntradaPantalla || m.entradaPantalla)}</td>
-                                    <td class="px-2 py-1 text-right">${formatCurrency(m.resultadoSalidaPantalla || m.salidaPantalla)}</td>
-                                    <td class="px-2 py-1 text-right font-bold ${(parseFloat(m.ganancia) || 0) >= 0 ? 'text-green-400' : 'text-red-400'}">${formatCurrency(m.ganancia)}</td>
-                                </tr>
-                            `).join('')}
+                                    <td class="px-2 py-1 text-right">${formatCurrency(ent)}</td>
+                                    <td class="px-2 py-1 text-right">${formatCurrency(sal)}</td>
+                                    <td class="px-2 py-1 text-right font-bold ${gan >= 0 ? 'text-green-400' : 'text-red-400'}">${formatCurrency(gan)}</td>
+                                </tr>`;
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -1279,43 +1412,115 @@ function cerrarDetalleColecta() {
     document.getElementById('modalDetalleColecta').classList.add('hidden');
 }
 
-// ========== REAL-TIME ==========
+// ========== REAL-TIME / POLLING ==========
 function iniciarRealtime() {
     cancelarSubscripciones();
+
+    // Intentar suscripción real-time primero
     try {
-        // Subscribe to colectas changes
         const subColectas = insforge.database
             .from('colectas')
             .on('*', () => {
-                console.log('Cambio detectado en colectas');
-                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) {
-                    cargarDashboardAdmin();
-                }
-                if (!document.getElementById('seccionColectas').classList.contains('hidden')) {
-                    cargarColectasAdmin();
-                }
-                showNotification('📡 Datos actualizados en tiempo real', 'info');
+                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
+                if (!document.getElementById('seccionColectas').classList.contains('hidden')) cargarColectasAdmin();
+                showNotification('📡 Datos actualizados', 'info');
             })
             .subscribe();
-        realtimeSubscriptions.push(subColectas);
 
-        // Subscribe to movimientos changes
         const subMov = insforge.database
             .from('movimientos')
             .on('*', () => {
-                console.log('Cambio detectado en movimientos');
-                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) {
-                    cargarDashboardAdmin();
-                }
+                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
             })
             .subscribe();
-        realtimeSubscriptions.push(subMov);
 
-        document.getElementById('realtimeStatus').textContent = 'Tiempo real activo';
+        // Verificar que las suscripciones son objetos válidos
+        if (!subColectas || !subMov) throw new Error('Suscripciones inválidas');
+
+        realtimeSubscriptions.push(subColectas, subMov);
+        actualizarIndicador('realtime');
         console.log('Subscripciones realtime iniciadas');
     } catch (e) {
-        console.warn('Realtime no disponible:', e);
-        document.getElementById('realtimeStatus').textContent = 'Sin tiempo real';
+        console.warn('Realtime no disponible, usando polling cada 30s:', e);
+        iniciarPolling();
+    }
+}
+
+function iniciarPolling() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    actualizarIndicador('polling');
+
+    let segundos = 30;
+    async function tick() {
+        segundos--;
+        const statusEl = document.getElementById('realtimeStatus');
+        if (statusEl) statusEl.textContent = `Actualiza en ${segundos}s`;
+
+        if (segundos <= 0) {
+            segundos = 30;
+            const ok = await verificarYReconectar();
+            if (ok) {
+                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
+                if (!document.getElementById('seccionColectas').classList.contains('hidden')) cargarColectasAdmin();
+            }
+        }
+    }
+
+    pollingInterval = setInterval(tick, 1000);
+}
+
+async function verificarYReconectar() {
+    try {
+        // Prueba rápida: query mínimo para verificar que la sesión sigue activa
+        const { error } = await insforge.database.from('usuarios').select('id').limit(1);
+        if (error && (error.status === 401 || error.status === 403 || String(error.message).includes('JWT'))) {
+            throw new Error('Sesión expirada');
+        }
+        consecutiveErrors = 0;
+        return true;
+    } catch (e) {
+        consecutiveErrors++;
+        console.warn(`Error de conexión (intento ${consecutiveErrors}):`, e.message);
+
+        if (consecutiveErrors >= 2) {
+            // Intentar re-autenticar
+            actualizarIndicador('reconectando');
+            const ok = await inicializarInsForge();
+            if (ok) {
+                consecutiveErrors = 0;
+                actualizarIndicador('polling');
+                showNotification('🔄 Sesión renovada automáticamente', 'info');
+                return true;
+            } else {
+                // No se pudo reconectar, pedir al usuario que recargue
+                actualizarIndicador('error');
+                return false;
+            }
+        }
+        return false;
+    }
+}
+
+function actualizarIndicador(modo) {
+    const dot = document.querySelector('.pulse-dot');
+    const statusEl = document.getElementById('realtimeStatus');
+    if (!statusEl) return;
+    if (modo === 'realtime') {
+        if (dot) dot.style.background = '#22c55e';
+        statusEl.textContent = 'Tiempo real activo';
+        statusEl.className = 'text-xs text-green-400';
+    } else if (modo === 'polling') {
+        if (dot) dot.style.background = '#f59e0b';
+        statusEl.textContent = 'Actualiza en 30s';
+        statusEl.className = 'text-xs text-yellow-400';
+    } else if (modo === 'reconectando') {
+        if (dot) dot.style.background = '#3b82f6';
+        statusEl.textContent = 'Reconectando...';
+        statusEl.className = 'text-xs text-blue-400';
+    } else if (modo === 'error') {
+        if (dot) dot.style.background = '#ef4444';
+        statusEl.textContent = 'Sin conexión — recarga la página';
+        statusEl.className = 'text-xs text-red-400';
     }
 }
 
@@ -1325,6 +1530,10 @@ function cancelarSubscripciones() {
         catch (e) { console.warn('Error cancelando sub:', e); }
     });
     realtimeSubscriptions = [];
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
 }
 
 // ========== INIT ==========
@@ -1335,6 +1544,24 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (restored && insforge) {
         mostrarPanel();
     }
+
+    // Re-autenticar preventivamente cada 45 minutos (antes de que expire el token)
+    reAuthInterval = setInterval(async () => {
+        if (!adminActual) return;
+        console.log('Re-autenticación preventiva...');
+        await inicializarInsForge();
+    }, 45 * 60 * 1000);
+
+    // Recargar datos cuando el usuario vuelve a la pestaña después de tenerla inactiva
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && adminActual) {
+            const ok = await verificarYReconectar();
+            if (ok) {
+                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
+                if (!document.getElementById('seccionColectas').classList.contains('hidden')) cargarColectasAdmin();
+            }
+        }
+    });
 });
 </script>
 </body>
