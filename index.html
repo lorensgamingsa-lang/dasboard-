@@ -153,6 +153,10 @@
                     <span id="realtimeStatus">Tiempo real activo</span>
                 </div>
                 <span class="text-xs text-slate-400" id="ultimaActualizacion"></span>
+                <button onclick="recargarPaginaActual()" title="Recargar datos"
+                        class="px-3 py-1.5 rounded-lg text-sm text-slate-200 hover:bg-slate-700 transition-all border border-slate-600 flex items-center gap-1.5">
+                    🔄 Recargar
+                </button>
                 <button onclick="logoutAdmin()"
                         class="px-4 py-2 flex items-center gap-1.5 rounded-lg text-sm text-red-400 hover:bg-red-900 hover:bg-opacity-30 transition-all border border-red-800">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -2449,25 +2453,24 @@ function iniciarRealtime() {
 
 function iniciarPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
-    actualizarIndicador('polling');
+    actualizarIndicador('manual');
+}
 
-    let segundos = 30;
-    async function tick() {
-        segundos--;
-        const statusEl = document.getElementById('realtimeStatus');
-        if (statusEl) statusEl.textContent = `Actualiza en ${segundos}s`;
-
-        if (segundos <= 0) {
-            segundos = 30;
-            const ok = await verificarYReconectar();
-            if (ok) {
-                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
-                if (!document.getElementById('seccionColectas').classList.contains('hidden')) cargarColectasAdmin();
-            }
+function recargarPaginaActual() {
+    const mapa = {
+        'seccionUsuarios':  () => cargarUsuarios(),
+        'seccionDashboard': () => cargarDashboardAdmin(),
+        'seccionColectas':  () => cargarColectasAdmin(),
+        'seccionPerdidas':  () => cargarPerdidas(),
+        'seccionPrestamos': () => cargarPrestamos()
+    };
+    for (const [id, fn] of Object.entries(mapa)) {
+        if (!document.getElementById(id).classList.contains('hidden')) {
+            fn();
+            document.getElementById('ultimaActualizacion').textContent = 'Actualizado: ' + formatTimeNow();
+            break;
         }
     }
-
-    pollingInterval = setInterval(tick, 1000);
 }
 
 async function verificarYReconectar() {
@@ -2510,10 +2513,10 @@ function actualizarIndicador(modo) {
         if (dot) dot.style.background = '#22c55e';
         statusEl.textContent = 'Tiempo real activo';
         statusEl.className = 'text-xs text-green-400';
-    } else if (modo === 'polling') {
-        if (dot) dot.style.background = '#f59e0b';
-        statusEl.textContent = 'Actualiza en 30s';
-        statusEl.className = 'text-xs text-yellow-400';
+    } else if (modo === 'manual') {
+        if (dot) dot.style.background = '#94a3b8';
+        statusEl.textContent = 'Actualización manual';
+        statusEl.className = 'text-xs text-slate-400';
     } else if (modo === 'reconectando') {
         if (dot) dot.style.background = '#3b82f6';
         statusEl.textContent = 'Reconectando...';
@@ -2557,10 +2560,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState === 'visible' && adminActual) {
             const ok = await verificarYReconectar();
-            if (ok) {
-                if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
-                if (!document.getElementById('seccionColectas').classList.contains('hidden')) cargarColectasAdmin();
-            }
+            if (ok) recargarPaginaActual();
         }
     });
 });
