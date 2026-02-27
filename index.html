@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -174,6 +173,12 @@
         <button onclick="navigateTo('colectas')" class="nav-tab px-5 py-2.5 rounded-lg text-sm" data-page="colectas">
             📋 Colectas
         </button>
+        <button onclick="navigateTo('perdidas')" class="nav-tab px-5 py-2.5 rounded-lg text-sm" data-page="perdidas">
+            📉 Pérdidas
+        </button>
+        <button onclick="navigateTo('prestamos')" class="nav-tab px-5 py-2.5 rounded-lg text-sm" data-page="prestamos">
+            💰 Préstamos
+        </button>
     </div>
 
     <!-- ===== SECCIÓN: USUARIOS ===== -->
@@ -206,6 +211,27 @@
 
     <!-- ===== SECCIÓN: DASHBOARD ===== -->
     <div id="seccionDashboard" class="hidden fade-in">
+
+        <!-- Totales Generales (parte superior) -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="card-glass rounded-xl p-5" style="border: 1px solid rgba(168,85,247,0.5);">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-purple-300 tracking-wider">TOTAL COLECTADO</span>
+                    <span class="text-3xl">🎰</span>
+                </div>
+                <div class="text-3xl font-bold text-white" id="adMetricaTotalColectado">$0.00</div>
+                <div class="text-xs text-slate-400 mt-1">Suma de entradas de todas las máquinas</div>
+            </div>
+            <div class="card-glass rounded-xl p-5" style="border: 1px solid rgba(236,72,153,0.5);">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-pink-300 tracking-wider">TOTAL PREMIOS</span>
+                    <span class="text-3xl">🎁</span>
+                </div>
+                <div class="text-3xl font-bold text-pink-400" id="adMetricaTotalPremios">$0.00</div>
+                <div class="text-xs text-slate-400 mt-1">Suma de pagos de todas las máquinas</div>
+            </div>
+        </div>
+
         <!-- Filtros -->
         <div class="card-glass rounded-lg p-4 mb-4">
             <div class="flex flex-wrap items-center gap-4">
@@ -314,9 +340,9 @@
                 </div>
             </div>
             <!-- Tendencia de Pérdidas -->
-            <div class="card-glass rounded-xl p-4">
+            <div class="card-glass rounded-xl p-4 flex flex-col">
                 <h3 class="text-sm font-bold text-white mb-3">📉 Tendencia de Pérdidas</h3>
-                <div id="adChartPerdidasContainer" style="position: relative; height: 280px;">
+                <div id="adChartPerdidasContainer" style="position: relative; flex: 1; min-height: 280px;">
                     <canvas id="adChartPerdidas"></canvas>
                 </div>
             </div>
@@ -355,6 +381,38 @@
                 <h3 class="text-sm font-bold text-white">🏷️ Rentabilidad por Chapa</h3>
                 <span class="text-xs bg-orange-900 text-orange-300 px-2 py-1 rounded-full font-semibold">Impuesto: $37.50 / chapa</span>
             </div>
+            <!-- Filtros -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Local</label>
+                    <select id="filtroChapasLocal" onchange="aplicarFiltrosChapas()"
+                            class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400">
+                        <option value="">Todos los locales</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Chapa</label>
+                    <input type="text" id="filtroChapasChapa" oninput="aplicarFiltrosChapas()" placeholder="Buscar chapa..."
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400 placeholder-slate-500">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Desde</label>
+                    <input type="date" id="filtroChapasDesde" onchange="aplicarFiltrosChapas()"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Hasta</label>
+                    <input type="date" id="filtroChapasHasta" onchange="aplicarFiltrosChapas()"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400">
+                </div>
+            </div>
+            <div class="flex items-center gap-2 mb-4">
+                <input type="checkbox" id="filtroChapasNoCubrieron" onchange="aplicarFiltrosChapas()"
+                       class="w-4 h-4 accent-red-500 cursor-pointer">
+                <label class="text-xs text-slate-300 cursor-pointer" for="filtroChapasNoCubrieron">
+                    Mostrar solo chapas que <span class="text-red-400 font-semibold">no cubrieron</span> el impuesto
+                </label>
+            </div>
             <div id="adRentabilidadChapasContainer">
                 <div class="text-center py-8 text-slate-400">Cargando datos...</div>
             </div>
@@ -363,19 +421,197 @@
 
     <!-- ===== SECCIÓN: COLECTAS ===== -->
     <div id="seccionColectas" class="hidden fade-in">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold">📋 Colectas Recientes</h2>
-            <div class="flex items-center gap-3">
-                <select id="filtroColectaUsuario" onchange="cargarColectasAdmin()"
-                        class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
-                    <option value="todos">Todos los usuarios</option>
-                </select>
+        <h2 class="text-lg font-bold mb-4">📋 Colectas Recientes</h2>
+        <!-- Filtros -->
+        <div class="card-glass rounded-lg p-4 mb-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Usuario</label>
+                    <select id="filtroColectaUsuario" onchange="cargarColectasAdmin()"
+                            class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                        <option value="todos">Todos los usuarios</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Establecimiento</label>
+                    <input type="text" id="filtroColectaEstablecimiento" oninput="cargarColectasAdmin()"
+                           placeholder="🔍 Buscar establecimiento..."
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Desde</label>
+                    <input type="date" id="filtroColectaDesde" onchange="cargarColectasAdmin()"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Hasta</label>
+                    <input type="date" id="filtroColectaHasta" onchange="cargarColectasAdmin()"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
             </div>
         </div>
         <div id="listaColectasAdmin" class="space-y-3">
             <div class="card-glass rounded-xl p-6 text-center text-slate-400">Cargando...</div>
         </div>
     </div>
+
+<!-- ===== SECCIÓN: PÉRDIDAS ===== -->
+<div id="seccionPerdidas" class="hidden fade-in">
+    <h2 class="text-lg font-bold mb-4">📉 Tendencia de Pérdidas</h2>
+
+    <!-- Filtros -->
+    <div class="card-glass rounded-xl p-4 mb-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Usuario</label>
+                <select id="filtroPerdidasUsuario" onchange="cargarPerdidas()"
+                        class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                    <option value="todos">Todos los usuarios</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Tipo</label>
+                <select id="filtroPerdidasTipo" onchange="cargarPerdidas()"
+                        class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                    <option value="todos">Todos</option>
+                    <option value="gasto">Gastos</option>
+                    <option value="dif">DIF%</option>
+                    <option value="devolucion">Devoluciones</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Desde</label>
+                <input type="date" id="filtroPerdidasDesde" onchange="cargarPerdidas()"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Hasta</label>
+                <input type="date" id="filtroPerdidasHasta" onchange="cargarPerdidas()"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas resumen -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(239,68,68,0.4);">
+            <div class="text-xs font-semibold text-red-300 tracking-wider mb-1">TOTAL GASTOS</div>
+            <div class="text-2xl font-bold text-red-400" id="pdTotalGastos">$0.00</div>
+        </div>
+        <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(251,146,60,0.4);">
+            <div class="text-xs font-semibold text-orange-300 tracking-wider mb-1">TOTAL DIF%</div>
+            <div class="text-2xl font-bold text-orange-400" id="pdTotalDif">$0.00</div>
+        </div>
+        <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(168,85,247,0.4);">
+            <div class="text-xs font-semibold text-purple-300 tracking-wider mb-1">TOTAL DEVOLUCIONES</div>
+            <div class="text-2xl font-bold text-purple-400" id="pdTotalDevoluciones">$0.00</div>
+        </div>
+        <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(236,72,153,0.4);">
+            <div class="text-xs font-semibold text-pink-300 tracking-wider mb-1">TOTAL PÉRDIDAS</div>
+            <div class="text-2xl font-bold text-pink-400" id="pdTotalPerdidas">$0.00</div>
+        </div>
+    </div>
+
+    <!-- Gráfica + Tabla por usuario -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <!-- Gráfica distribución -->
+        <div class="card-glass rounded-xl p-4 flex flex-col">
+            <h3 class="text-sm font-bold text-white mb-3">📊 Distribución de Pérdidas</h3>
+            <div id="pdChartDistContainer" style="position: relative; flex: 1; min-height: 260px;">
+                <canvas id="pdChartDist"></canvas>
+            </div>
+        </div>
+        <!-- Tabla por usuario -->
+        <div class="card-glass rounded-xl p-4">
+            <h3 class="text-sm font-bold text-white mb-3">👤 Resumen por Usuario</h3>
+            <div id="pdTablaUsuarios" class="overflow-x-auto">
+                <div class="text-center text-slate-400 text-sm py-4">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listado detalle -->
+    <div class="card-glass rounded-xl p-4">
+        <h3 class="text-sm font-bold text-white mb-3">📋 Detalle de Movimientos</h3>
+        <div id="pdListaDetalle" class="space-y-2">
+            <div class="text-center text-slate-400 text-sm py-4">Cargando...</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SECCIÓN: PRÉSTAMOS ===== -->
+<div id="seccionPrestamos" class="hidden fade-in" style="max-width:80rem;margin:0 auto;padding:0 1rem">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">💰 Préstamos</h2>
+            <button onclick="abrirModalPrestamo()"
+                    class="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 transition-all">
+                ➕ Nuevo Préstamo
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card-glass rounded-xl p-4 mb-4">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Usuario</label>
+                    <select id="filtroPrestamoUsuario" onchange="cargarPrestamos()"
+                            class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Establecimiento</label>
+                    <input type="text" id="filtroPrestamoEst" oninput="cargarPrestamos()" placeholder="🔍 Buscar..."
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Estado</label>
+                    <select id="filtroPrestamoEstado" onchange="cargarPrestamos()"
+                            class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                        <option value="todos">Todos</option>
+                        <option value="activo">Activos</option>
+                        <option value="saldado">Saldados</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Desde</label>
+                    <input type="date" id="filtroPrestamoDesde" onchange="cargarPrestamos()"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Hasta</label>
+                    <input type="date" id="filtroPrestamoHasta" onchange="cargarPrestamos()"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjetas resumen -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(34,197,94,0.4);">
+                <div class="text-xs font-semibold text-green-300 tracking-wider mb-1">TOTAL PRESTADO</div>
+                <div class="text-2xl font-bold text-green-400" id="prTotalPrestado">$0.00</div>
+            </div>
+            <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(16,185,129,0.4);">
+                <div class="text-xs font-semibold text-emerald-300 tracking-wider mb-1">TOTAL A COBRAR</div>
+                <div class="text-2xl font-bold text-emerald-400" id="prTotalACobrar">$0.00</div>
+            </div>
+            <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(59,130,246,0.4);">
+                <div class="text-xs font-semibold text-blue-300 tracking-wider mb-1">TOTAL COBRADO</div>
+                <div class="text-2xl font-bold text-blue-400" id="prTotalCobrado">$0.00</div>
+            </div>
+            <div class="card-glass rounded-xl p-4" style="border: 1px solid rgba(251,146,60,0.4);">
+                <div class="text-xs font-semibold text-orange-300 tracking-wider mb-1">TOTAL PENDIENTE</div>
+                <div class="text-2xl font-bold text-orange-400" id="prTotalPendiente">$0.00</div>
+            </div>
+        </div>
+
+        <!-- Lista de préstamos -->
+        <div id="listaPrestamos" class="space-y-3">
+            <div class="card-glass rounded-xl p-6 text-center text-slate-400">Cargando...</div>
+        </div>
+    </div>
+
 </div>
 
 <!-- ================ MODAL: CREAR/EDITAR USUARIO ================ -->
@@ -437,6 +673,98 @@
     </div>
 </div>
 
+<!-- ================ MODAL: NUEVO PRÉSTAMO ================ -->
+<div id="modalPrestamo" class="modal-overlay hidden">
+    <div class="card-glass-strong rounded-2xl p-6 w-full max-w-lg shadow-2xl fade-in mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold">💰 Nuevo Préstamo</h3>
+            <button onclick="cerrarModalPrestamo()" class="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Establecimiento</label>
+                <input type="text" id="prestamoEstablecimiento" list="prestamoEstablecimientoList"
+                       placeholder="🔍 Escribir o buscar establecimiento..."
+                       autocomplete="off"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400 placeholder-slate-500">
+                <datalist id="prestamoEstablecimientoList"></datalist>
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Asignado a usuario</label>
+                <select id="prestamoUsuarioForm"
+                        class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                    <option value="">Seleccionar...</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Monto prestado ($)</label>
+                <input type="number" id="prestamoMonto" min="0" step="0.01" oninput="calcularTotalPrestamo()"
+                       placeholder="0.00"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-2">Tipo de cobro</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tipoCobro" value="neto" checked onchange="calcularTotalPrestamo()"
+                               class="accent-purple-500">
+                        <span class="text-sm text-white">Cobro neto</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tipoCobro" value="porcentaje" onchange="calcularTotalPrestamo()"
+                               class="accent-purple-500">
+                        <span class="text-sm text-white">Con porcentaje (%)</span>
+                    </label>
+                </div>
+            </div>
+            <div id="campoPorcentaje" class="hidden">
+                <label class="text-xs text-purple-300 block mb-1">Porcentaje de interés (%)</label>
+                <input type="number" id="prestamoPorcentaje" min="0" step="0.1" oninput="calcularTotalPrestamo()"
+                       placeholder="Ej: 10"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <!-- Total calculado -->
+            <div class="card-glass rounded-xl p-4 flex items-center justify-between" style="border: 1px solid rgba(34,197,94,0.4);">
+                <span class="text-sm text-slate-300">Total a cobrar:</span>
+                <span class="text-xl font-bold text-green-400" id="prestamoTotalCalculado">$0.00</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Fecha inicio</label>
+                    <input type="date" id="prestamoFechaInicio"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Descripción / Notas</label>
+                    <input type="text" id="prestamoDescripcion" placeholder="Opcional..."
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="guardarPrestamo()"
+                        class="flex-1 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 transition-all">
+                    💾 Guardar Préstamo
+                </button>
+                <button onclick="cerrarModalPrestamo()"
+                        class="px-5 py-2.5 bg-slate-700 rounded-lg text-sm hover:bg-slate-600 transition-all">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================ MODAL: DETALLE PRÉSTAMO ================ -->
+<div id="modalDetallePrestamo" class="modal-overlay hidden">
+    <div class="card-glass-strong rounded-2xl p-6 w-full max-w-2xl shadow-2xl fade-in mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold" id="detallePrestTitulo">Detalle Préstamo</h3>
+            <button onclick="cerrarDetallePrestamo()" class="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
+        <div id="detallePrestContenido"></div>
+    </div>
+</div>
+
 <script>
 // ========== CONFIGURACIÓN ==========
 const INSFORGE_CONFIG = {
@@ -452,6 +780,7 @@ let reAuthInterval = null;
 let consecutiveErrors = 0;
 let adRankingCompleto = [];
 let adMostrarTodosRanking = false;
+let adColectasParaChapas = [];
 
 // ========== INSFORGE SDK ==========
 async function inicializarInsForge() {
@@ -563,7 +892,7 @@ async function mostrarPanel() {
 }
 
 function navigateTo(page) {
-    ['seccionUsuarios', 'seccionDashboard', 'seccionColectas'].forEach(id => {
+    ['seccionUsuarios', 'seccionDashboard', 'seccionColectas', 'seccionPerdidas', 'seccionPrestamos'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
     });
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -578,6 +907,12 @@ function navigateTo(page) {
     } else if (page === 'colectas') {
         document.getElementById('seccionColectas').classList.remove('hidden');
         cargarColectasAdmin();
+    } else if (page === 'perdidas') {
+        document.getElementById('seccionPerdidas').classList.remove('hidden');
+        cargarPerdidas();
+    } else if (page === 'prestamos') {
+        document.getElementById('seccionPrestamos').classList.remove('hidden');
+        cargarPrestamos();
     }
 }
 
@@ -592,6 +927,14 @@ function formatDateSQL(date) {
     return d.getFullYear() + '-' +
         String(d.getMonth() + 1).padStart(2, '0') + '-' +
         String(d.getDate()).padStart(2, '0');
+}
+
+function formatDateTime(ts) {
+    return new Date(ts).toLocaleString('es-PA', { timeZone: 'America/Panama' });
+}
+
+function formatTimeNow() {
+    return new Date().toLocaleTimeString('es-PA', { timeZone: 'America/Panama' });
 }
 
 function showNotification(msg, type = 'info') {
@@ -665,9 +1008,14 @@ async function cargarFiltroUsuarios() {
         const options = '<option value="todos">Todos</option>' +
             usuarios.map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
         document.getElementById('filtroUsuario').innerHTML = options;
-        document.getElementById('filtroColectaUsuario').innerHTML =
-            '<option value="todos">Todos los usuarios</option>' +
+        const optTodos = '<option value="todos">Todos los usuarios</option>' +
             usuarios.map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
+        document.getElementById('filtroColectaUsuario').innerHTML = optTodos;
+        document.getElementById('filtroPerdidasUsuario').innerHTML = optTodos;
+        document.getElementById('filtroPrestamoUsuario').innerHTML = optTodos;
+        const optSelect = '<option value="">Seleccionar...</option>' +
+            usuarios.map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
+        document.getElementById('prestamoUsuarioForm').innerHTML = optSelect;
     } catch (e) {
         console.error('Error cargando filtro usuarios:', e);
     }
@@ -834,6 +1182,7 @@ async function cargarDashboardAdmin() {
         let totalARecibir = 0, totalGananciaCU = 0, totalImpuestoJCJ = 0;
         let totalRetencion55 = 0, totalAbonosColectas = 0, totalDepositosColectas = 0;
         let totalDiferenciaColectas = 0, totalPendienteColectas = 0;
+        let totalColectado = 0, totalPremios = 0;
 
         listaColectas.forEach(c => {
             const datos = c.datos_json?.totales || {};
@@ -845,6 +1194,11 @@ async function cargarDashboardAdmin() {
             totalDepositosColectas += parseFloat(datos.deposito) || 0;
             totalDiferenciaColectas += parseFloat(datos.difPorcentaje) || 0;
             totalPendienteColectas += parseFloat(datos.pendiente) || 0;
+            // Sumar entradas y salidas de máquinas
+            (c.datos_json?.maquinas || []).forEach(m => {
+                totalColectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+                totalPremios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+            });
         });
 
         // Calculate metrics from movimientos
@@ -858,6 +1212,10 @@ async function cargarDashboardAdmin() {
         const totalAbonos = totalAbonosColectas + totalAbonosMov;
         const totalDepositos = totalDepositosColectas + totalDepositosMov;
         const balance = totalARecibir + totalAbonosMov - totalGastos - totalDepositosMov;
+
+        // Update totales generales
+        document.getElementById('adMetricaTotalColectado').textContent = formatCurrency(totalColectado);
+        document.getElementById('adMetricaTotalPremios').textContent = formatCurrency(totalPremios);
 
         // Update metric cards
         document.getElementById('adMetricaGanancia').textContent = formatCurrency(totalGananciaCU);
@@ -877,7 +1235,7 @@ async function cargarDashboardAdmin() {
         document.getElementById('adContadorColectas').textContent = `${listaColectas.length} Colecta${listaColectas.length !== 1 ? 's' : ''}`;
 
         // Update timestamp
-        document.getElementById('ultimaActualizacion').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-PA');
+        document.getElementById('ultimaActualizacion').textContent = 'Actualizado: ' + formatTimeNow();
 
         // Build chart data
         crearGraficaRanking(listaColectas);
@@ -1070,10 +1428,11 @@ function crearGraficaPerdidas(colectas, movimientos) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { top: 24, bottom: 0, left: 0, right: 0 } },
             plugins: { legend: { display: false } },
             scales: {
-                x: { ticks: { color: 'white', font: { size: 13, weight: 'bold' } }, grid: { display: false } },
-                y: { beginAtZero: true, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                x: { ticks: { color: 'white', font: { size: 13, weight: 'bold' }, padding: 4 }, grid: { display: false } },
+                y: { beginAtZero: true, grace: 0, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
             }
         },
         plugins: [{
@@ -1188,13 +1547,52 @@ function crearTablaMaquinas(colectas) {
 
 // ========== RENTABILIDAD POR CHAPA ==========
 function crearTablaRentabilidadChapasAdmin(colectas) {
+    adColectasParaChapas = colectas || [];
+
+    // Poblar dropdown de locales
+    const localesSet = new Set();
+    adColectasParaChapas.forEach(c => { if (c.establecimiento) localesSet.add(c.establecimiento); });
+    const selectLocal = document.getElementById('filtroChapasLocal');
+    if (selectLocal) {
+        const valorActual = selectLocal.value;
+        selectLocal.innerHTML = '<option value="">Todos los locales</option>' +
+            [...localesSet].sort().map(l => `<option value="${l}"${l === valorActual ? ' selected' : ''}>${l}</option>`).join('');
+    }
+
+    // Establecer fechas por defecto al rango del período cargado
+    const fechas = adColectasParaChapas.map(c => c.fecha).filter(Boolean).sort();
+    if (fechas.length > 0) {
+        const desdeInput = document.getElementById('filtroChapasDesde');
+        const hastaInput = document.getElementById('filtroChapasHasta');
+        if (desdeInput && !desdeInput.value) desdeInput.value = fechas[0];
+        if (hastaInput && !hastaInput.value) hastaInput.value = fechas[fechas.length - 1];
+    }
+
+    aplicarFiltrosChapas();
+}
+
+function aplicarFiltrosChapas() {
     const container = document.getElementById('adRentabilidadChapasContainer');
     if (!container) return;
+
+    const filtroLocal = document.getElementById('filtroChapasLocal')?.value || '';
+    const filtroChapa = (document.getElementById('filtroChapasChapa')?.value || '').toLowerCase().trim();
+    const filtroDesde = document.getElementById('filtroChapasDesde')?.value || '';
+    const filtroHasta = document.getElementById('filtroChapasHasta')?.value || '';
+    const soloNoCubrieron = document.getElementById('filtroChapasNoCubrieron')?.checked || false;
 
     const IMPUESTO_POR_CHAPA = 37.5;
     const datosPorChapa = {};
 
-    colectas.forEach(c => {
+    // Filtrar colectas por local y fechas
+    let colectasFiltradas = adColectasParaChapas;
+    if (filtroLocal) colectasFiltradas = colectasFiltradas.filter(c => c.establecimiento === filtroLocal);
+    if (filtroDesde) colectasFiltradas = colectasFiltradas.filter(c => c.fecha >= filtroDesde);
+    if (filtroHasta) colectasFiltradas = colectasFiltradas.filter(c => c.fecha <= filtroHasta);
+
+    // Agregar por chapa
+    colectasFiltradas.forEach(c => {
+        const local = c.establecimiento || 'Sin local';
         const maquinas = c.datos_json?.maquinas || [];
         maquinas.forEach(m => {
             const chapa = (m.chapa || 'sin-chapa').toLowerCase().trim();
@@ -1203,21 +1601,23 @@ function crearTablaRentabilidadChapasAdmin(colectas) {
             const salida = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
             const ganancia = entrada - salida;
             if (!datosPorChapa[chapa]) {
-                datosPorChapa[chapa] = { chapa, juego, gananciaBruta: 0, apariciones: 0 };
+                datosPorChapa[chapa] = { chapa, juego, gananciaBruta: 0, apariciones: 0, locales: new Set() };
             }
             datosPorChapa[chapa].gananciaBruta += ganancia;
             datosPorChapa[chapa].apariciones += 1;
             datosPorChapa[chapa].juego = juego;
+            datosPorChapa[chapa].locales.add(local);
         });
     });
 
-    const ranking = Object.values(datosPorChapa)
+    let ranking = Object.values(datosPorChapa)
         .map(item => {
             const impuesto = item.apariciones * IMPUESTO_POR_CHAPA;
             const gananciaNeta = item.gananciaBruta - impuesto;
             return {
                 chapa: item.chapa,
                 juego: item.juego,
+                local: [...item.locales].join(', '),
                 gananciaBruta: item.gananciaBruta,
                 apariciones: item.apariciones,
                 impuesto,
@@ -1227,8 +1627,14 @@ function crearTablaRentabilidadChapasAdmin(colectas) {
         })
         .sort((a, b) => b.gananciaNeta - a.gananciaNeta);
 
+    // Filtrar por texto de chapa
+    if (filtroChapa) ranking = ranking.filter(r => r.chapa.includes(filtroChapa));
+
+    // Filtrar solo no cubrieron
+    if (soloNoCubrieron) ranking = ranking.filter(r => !r.cubrioImpuesto);
+
     if (ranking.length === 0) {
-        container.innerHTML = `<div class="text-center py-8 text-slate-400">No hay datos de chapas para el período seleccionado</div>`;
+        container.innerHTML = `<div class="text-center py-8 text-slate-400">No hay datos para los filtros seleccionados</div>`;
         return;
     }
 
@@ -1264,6 +1670,7 @@ function crearTablaRentabilidadChapasAdmin(colectas) {
                         <th class="px-2 py-2 text-left">#</th>
                         <th class="px-2 py-2 text-left">Chapa</th>
                         <th class="px-2 py-2 text-left">Juego</th>
+                        <th class="px-2 py-2 text-left">Local</th>
                         <th class="px-2 py-2 text-right">Bruta</th>
                         <th class="px-2 py-2 text-right">Imp.</th>
                         <th class="px-2 py-2 text-right">Neta</th>
@@ -1276,6 +1683,7 @@ function crearTablaRentabilidadChapasAdmin(colectas) {
                         <td class="px-2 py-2 font-bold text-purple-400">${i + 1}</td>
                         <td class="px-2 py-2 font-mono text-yellow-300 uppercase">${item.chapa}</td>
                         <td class="px-2 py-2 text-slate-200">${item.juego} <span class="text-slate-500">(${item.apariciones}x)</span></td>
+                        <td class="px-2 py-2 text-blue-300">${item.local}</td>
                         <td class="px-2 py-2 text-right font-mono text-slate-300">$${item.gananciaBruta.toFixed(2)}</td>
                         <td class="px-2 py-2 text-right font-mono text-orange-400">-$${item.impuesto.toFixed(2)}</td>
                         <td class="px-2 py-2 text-right font-mono font-bold ${item.gananciaNeta >= 0 ? 'text-green-400' : 'text-red-400'}">$${item.gananciaNeta.toFixed(2)}</td>
@@ -1291,7 +1699,7 @@ function crearTablaRentabilidadChapasAdmin(colectas) {
             </table>
         </div>
         <div class="mt-3 text-right text-xs text-slate-500">
-            Total impuestos generados en el período: <span class="text-orange-400 font-semibold">$${totalImpuestos.toFixed(2)}</span>
+            Total impuestos en filtro actual: <span class="text-orange-400 font-semibold">$${totalImpuestos.toFixed(2)}</span>
         </div>
     `;
 }
@@ -1300,18 +1708,26 @@ function crearTablaRentabilidadChapasAdmin(colectas) {
 async function cargarColectasAdmin() {
     try {
         const filtroUsuario = document.getElementById('filtroColectaUsuario').value;
+        const filtroEst    = (document.getElementById('filtroColectaEstablecimiento')?.value || '').toLowerCase().trim();
+        const filtroDesde  = document.getElementById('filtroColectaDesde')?.value || '';
+        const filtroHasta  = document.getElementById('filtroColectaHasta')?.value || '';
 
         let query = insforge.database.from('colectas').select('*');
         if (filtroUsuario !== 'todos') query = query.eq('usuario_nombre', filtroUsuario);
-        query = query.order('created_at', { ascending: false }).limit(50);
+        if (filtroDesde) query = query.gte('fecha', filtroDesde);
+        if (filtroHasta) query = query.lte('fecha', filtroHasta);
+        query = query.order('created_at', { ascending: false }).limit(200);
 
         const { data, error } = await query;
         if (error) throw error;
-        const colectas = data || [];
+        let colectas = data || [];
+
+        // Filtro de establecimiento en cliente (búsqueda parcial)
+        if (filtroEst) colectas = colectas.filter(c => (c.establecimiento || '').toLowerCase().includes(filtroEst));
 
         const container = document.getElementById('listaColectasAdmin');
         if (colectas.length === 0) {
-            container.innerHTML = '<div class="card-glass rounded-xl p-6 text-center text-slate-400">No hay colectas</div>';
+            container.innerHTML = '<div class="card-glass rounded-xl p-6 text-center text-slate-400">No hay colectas para los filtros seleccionados</div>';
             return;
         }
 
@@ -1360,7 +1776,7 @@ async function verDetalleColecta(id) {
         document.getElementById('detalleColectaTitulo').textContent = c.establecimiento + ' — ' + c.fecha;
 
         let html = `
-            <div class="text-xs text-purple-300 mb-4">Colector: ${c.usuario_nombre} | Creado: ${new Date(c.created_at).toLocaleString('es-PA')}</div>
+            <div class="text-xs text-purple-300 mb-4">Colector: ${c.usuario_nombre} | Creado: ${formatDateTime(c.created_at)}</div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <div class="card-glass rounded-lg p-3">
                     <div class="text-[10px] text-slate-400">GANANCIA</div>
@@ -1444,6 +1860,557 @@ async function verDetalleColecta(id) {
 
 function cerrarDetalleColecta() {
     document.getElementById('modalDetalleColecta').classList.add('hidden');
+}
+
+// ========== PÉRDIDAS ==========
+async function cargarPerdidas() {
+    try {
+        const filtroUsuario = document.getElementById('filtroPerdidasUsuario')?.value || 'todos';
+        const filtroTipo    = document.getElementById('filtroPerdidasTipo')?.value || 'todos';
+        const filtroDesde   = document.getElementById('filtroPerdidasDesde')?.value || '';
+        const filtroHasta   = document.getElementById('filtroPerdidasHasta')?.value || '';
+
+        // Default dates: last 30 days
+        const hoy = new Date().toISOString().split('T')[0];
+        const hace30 = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+        const desde = filtroDesde || hace30;
+        const hasta = filtroHasta || hoy;
+        if (!filtroDesde) { const el = document.getElementById('filtroPerdidasDesde'); if (el && !el.value) el.value = desde; }
+        if (!filtroHasta) { const el = document.getElementById('filtroPerdidasHasta'); if (el && !el.value) el.value = hasta; }
+
+        // Fetch gastos from movimientos
+        let queryMov = insforge.database.from('movimientos').select('*').eq('tipo', 'gasto')
+            .gte('fecha', desde).lte('fecha', hasta);
+        if (filtroUsuario !== 'todos') queryMov = queryMov.eq('usuario_nombre', filtroUsuario);
+        const { data: movData } = await queryMov;
+        const listaGastos = movData || [];
+
+        // Fetch colectas for DIF% and devoluciones
+        let queryCol = insforge.database.from('colectas').select('usuario_nombre, fecha, establecimiento, datos_json')
+            .gte('fecha', desde).lte('fecha', hasta);
+        if (filtroUsuario !== 'todos') queryCol = queryCol.eq('usuario_nombre', filtroUsuario);
+        const { data: colData } = await queryCol;
+        const listaColectas = colData || [];
+
+        // Build unified list of items
+        let items = [];
+
+        // Add gastos
+        if (filtroTipo === 'todos' || filtroTipo === 'gasto') {
+            listaGastos.forEach(m => {
+                items.push({
+                    tipo: 'gasto',
+                    fecha: m.fecha,
+                    monto: parseFloat(m.monto) || 0,
+                    descripcion: m.descripcion || '-',
+                    usuario: m.usuario_nombre || '-',
+                    establecimiento: m.establecimiento_nombre || '-'
+                });
+            });
+        }
+
+        // Add DIF% and devoluciones from colectas
+        listaColectas.forEach(c => {
+            const totales = c.datos_json?.totales || {};
+            const dif = parseFloat(totales.difPorcentaje) || 0;
+            const dev = parseFloat(totales.devolucion) || 0;
+            if ((filtroTipo === 'todos' || filtroTipo === 'dif') && dif !== 0) {
+                items.push({
+                    tipo: 'dif',
+                    fecha: c.fecha,
+                    monto: dif,
+                    descripcion: 'Diferencia porcentaje',
+                    usuario: c.usuario_nombre || '-',
+                    establecimiento: c.establecimiento || '-'
+                });
+            }
+            if ((filtroTipo === 'todos' || filtroTipo === 'devolucion') && dev !== 0) {
+                items.push({
+                    tipo: 'devolucion',
+                    fecha: c.fecha,
+                    monto: dev,
+                    descripcion: 'Devolución',
+                    usuario: c.usuario_nombre || '-',
+                    establecimiento: c.establecimiento || '-'
+                });
+            }
+        });
+
+        // Sort by date descending
+        items.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+        // Totals
+        let totalGastos = 0, totalDif = 0, totalDev = 0;
+        items.forEach(i => {
+            if (i.tipo === 'gasto') totalGastos += i.monto;
+            else if (i.tipo === 'dif') totalDif += i.monto;
+            else if (i.tipo === 'devolucion') totalDev += i.monto;
+        });
+        const totalPerdidas = totalGastos + totalDif + totalDev;
+
+        document.getElementById('pdTotalGastos').textContent = formatCurrency(totalGastos);
+        document.getElementById('pdTotalDif').textContent = formatCurrency(totalDif);
+        document.getElementById('pdTotalDevoluciones').textContent = formatCurrency(totalDev);
+        document.getElementById('pdTotalPerdidas').textContent = formatCurrency(totalPerdidas);
+
+        // Chart
+        crearGraficaDistPerdidas(totalGastos, totalDif, totalDev);
+
+        // Per-user table
+        const porUsuario = {};
+        items.forEach(i => {
+            if (!porUsuario[i.usuario]) porUsuario[i.usuario] = { gastos: 0, dif: 0, devolucion: 0 };
+            if (i.tipo === 'gasto') porUsuario[i.usuario].gastos += i.monto;
+            else if (i.tipo === 'dif') porUsuario[i.usuario].dif += i.monto;
+            else if (i.tipo === 'devolucion') porUsuario[i.usuario].devolucion += i.monto;
+        });
+        const usuariosOrdenados = Object.entries(porUsuario).sort((a, b) => (b[1].gastos + b[1].dif + b[1].devolucion) - (a[1].gastos + a[1].dif + a[1].devolucion));
+
+        if (usuariosOrdenados.length === 0) {
+            document.getElementById('pdTablaUsuarios').innerHTML = '<div class="text-center text-slate-400 text-sm py-4">Sin datos</div>';
+        } else {
+            document.getElementById('pdTablaUsuarios').innerHTML = `
+                <table class="w-full text-xs text-white">
+                    <thead>
+                        <tr class="text-slate-400 border-b border-slate-700">
+                            <th class="px-2 py-2 text-left">Usuario</th>
+                            <th class="px-2 py-2 text-right text-red-300">Gastos</th>
+                            <th class="px-2 py-2 text-right text-orange-300">DIF%</th>
+                            <th class="px-2 py-2 text-right text-purple-300">Devoluc.</th>
+                            <th class="px-2 py-2 text-right text-pink-300">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${usuariosOrdenados.map(([usr, vals]) => {
+                            const tot = vals.gastos + vals.dif + vals.devolucion;
+                            return `<tr class="border-b border-slate-700 hover:bg-slate-700 hover:bg-opacity-30">
+                                <td class="px-2 py-2 font-medium">${usr}</td>
+                                <td class="px-2 py-2 text-right text-red-400">${formatCurrency(vals.gastos)}</td>
+                                <td class="px-2 py-2 text-right text-orange-400">${formatCurrency(vals.dif)}</td>
+                                <td class="px-2 py-2 text-right text-purple-400">${formatCurrency(vals.devolucion)}</td>
+                                <td class="px-2 py-2 text-right font-bold text-pink-400">${formatCurrency(tot)}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        // Detail list
+        if (items.length === 0) {
+            document.getElementById('pdListaDetalle').innerHTML = '<div class="text-center text-slate-400 text-sm py-4">Sin movimientos en el período</div>';
+        } else {
+            const colorMap = { gasto: 'text-red-400', dif: 'text-orange-400', devolucion: 'text-purple-400' };
+            const labelMap = { gasto: '💸 Gasto', dif: '📊 DIF%', devolucion: '↩️ Devolución' };
+            const borderMap = { gasto: 'rgba(239,68,68,0.3)', dif: 'rgba(251,146,60,0.3)', devolucion: 'rgba(168,85,247,0.3)' };
+            document.getElementById('pdListaDetalle').innerHTML = items.map(i => `
+                <div class="card-glass rounded-lg p-3 flex items-center justify-between" style="border: 1px solid ${borderMap[i.tipo]}">
+                    <div class="flex items-center gap-3">
+                        <div class="text-sm font-bold ${colorMap[i.tipo]}">${labelMap[i.tipo]}</div>
+                        <div>
+                            <div class="text-sm text-white">${i.descripcion}</div>
+                            <div class="text-xs text-slate-400">${i.establecimiento} — ${i.usuario} — ${i.fecha}</div>
+                        </div>
+                    </div>
+                    <div class="text-base font-bold ${colorMap[i.tipo]}">${formatCurrency(i.monto)}</div>
+                </div>`).join('');
+        }
+
+    } catch (e) {
+        showNotification('Error cargando pérdidas: ' + e.message, 'error');
+        console.error(e);
+    }
+}
+
+function crearGraficaDistPerdidas(gastos, dif, devoluciones) {
+    const ctx = document.getElementById('pdChartDist');
+    if (!ctx) return;
+    const existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Gastos', 'DIF%', 'Devoluciones'],
+            datasets: [{
+                data: [gastos, dif, devoluciones],
+                backgroundColor: ['rgba(239,68,68,0.75)', 'rgba(251,146,60,0.75)', 'rgba(168,85,247,0.75)'],
+                borderColor: ['rgb(239,68,68)', 'rgb(251,146,60)', 'rgb(168,85,247)'],
+                borderWidth: 2,
+                borderRadius: 6,
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 24, bottom: 0, left: 0, right: 0 } },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: 'white', font: { size: 13, weight: 'bold' }, padding: 4 }, grid: { display: false } },
+                y: { beginAtZero: true, grace: 0, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+            }
+        },
+        plugins: [{
+            id: 'pdDistValores',
+            afterDatasetsDraw(chart) {
+                const { ctx: c } = chart;
+                const meta = chart.getDatasetMeta(0);
+                c.save();
+                meta.data.forEach((bar, i) => {
+                    const val = chart.data.datasets[0].data[i];
+                    if (!val) return;
+                    c.fillStyle = 'white';
+                    c.font = 'bold 11px sans-serif';
+                    c.textAlign = 'center';
+                    c.textBaseline = 'bottom';
+                    c.fillText(formatCurrency(val), bar.x, bar.y - 4);
+                });
+                c.restore();
+            }
+        }]
+    });
+}
+
+// ========== PRÉSTAMOS ==========
+async function cargarPrestamos() {
+    const filtroUsuario = document.getElementById('filtroPrestamoUsuario')?.value || 'todos';
+    const filtroEst     = (document.getElementById('filtroPrestamoEst')?.value || '').toLowerCase().trim();
+    const filtroEstado  = document.getElementById('filtroPrestamoEstado')?.value || 'todos';
+    const filtroDesde   = document.getElementById('filtroPrestamoDesde')?.value || '';
+    const filtroHasta   = document.getElementById('filtroPrestamoHasta')?.value || '';
+
+    try {
+        let query = insforge.database.from('prestamos').select('*');
+        if (filtroUsuario !== 'todos') query = query.eq('usuario_nombre', filtroUsuario);
+        if (filtroEstado !== 'todos') query = query.eq('estado', filtroEstado);
+        if (filtroDesde) query = query.gte('fecha_inicio', filtroDesde);
+        if (filtroHasta) query = query.lte('fecha_inicio', filtroHasta);
+        query = query.order('created_at', { ascending: false });
+        const { data: prData, error } = await query;
+        if (error) throw error;
+        let prestamos = prData || [];
+
+        // Client-side establishment filter
+        if (filtroEst) prestamos = prestamos.filter(p => (p.establecimiento_nombre || '').toLowerCase().includes(filtroEst));
+
+        // Fetch abonos from movimientos (los que tienen establecimiento_nombre)
+        const { data: abonosData } = await insforge.database.from('movimientos').select('*').eq('tipo', 'abono');
+        const todosAbonos = abonosData || [];
+
+        // Fetch colectas para sumar abonos registrados dentro de cada colecta (datos_json.totales.abono)
+        const { data: colectasData } = await insforge.database.from('colectas').select('establecimiento, fecha, datos_json');
+        const todasColectas = colectasData || [];
+
+        // Group movimientos-abonos by establishment (trim + lowercase)
+        const abonosPorEst = {};
+        todosAbonos.forEach(a => {
+            const k = (a.establecimiento_nombre || '').trim().toLowerCase();
+            if (!k) return; // ignorar abonos sin establecimiento
+            if (!abonosPorEst[k]) abonosPorEst[k] = [];
+            abonosPorEst[k].push(a);
+        });
+
+        // Group colecta-abonos by establishment
+        const colAbonosPorEst = {};
+        todasColectas.forEach(c => {
+            const k = (c.establecimiento || '').trim().toLowerCase();
+            if (!k) return;
+            const monto = parseFloat(c.datos_json?.totales?.abono) || 0;
+            if (monto <= 0) return;
+            if (!colAbonosPorEst[k]) colAbonosPorEst[k] = [];
+            colAbonosPorEst[k].push({ fecha: c.fecha, monto, origen: 'colecta' });
+        });
+
+        // Enrich each loan with abonos from both sources
+        const prestamosRich = prestamos.map(p => {
+            const key = (p.establecimiento_nombre || '').trim().toLowerCase();
+
+            // Abonos desde movimientos
+            const abonosMov = (abonosPorEst[key] || [])
+                .filter(a => a.fecha >= p.fecha_inicio)
+                .map(a => ({ fecha: a.fecha, monto: parseFloat(a.monto) || 0, origen: 'movimiento', descripcion: a.descripcion || 'Abono' }));
+
+            // Abonos desde colectas
+            const abonosCol = (colAbonosPorEst[key] || [])
+                .filter(a => a.fecha >= p.fecha_inicio)
+                .map(a => ({ ...a, descripcion: 'Abono en colecta' }));
+
+            const abonos = [...abonosMov, ...abonosCol].sort((a, b) => b.fecha.localeCompare(a.fecha));
+            const totalPagado = abonos.reduce((s, a) => s + a.monto, 0);
+            const saldo = Math.max(0, (p.monto_total || 0) - totalPagado);
+            return { ...p, abonos, totalPagado, saldo };
+        });
+
+        // Summary totals
+        let sumPrestado = 0, sumACobrar = 0, sumCobrado = 0, sumPendiente = 0;
+        prestamosRich.forEach(p => {
+            sumPrestado  += parseFloat(p.monto_original) || 0;
+            sumACobrar   += parseFloat(p.monto_total) || 0;
+            sumCobrado   += p.totalPagado;
+            sumPendiente += p.saldo;
+        });
+        document.getElementById('prTotalPrestado').textContent  = formatCurrency(sumPrestado);
+        document.getElementById('prTotalACobrar').textContent   = formatCurrency(sumACobrar);
+        document.getElementById('prTotalCobrado').textContent   = formatCurrency(sumCobrado);
+        document.getElementById('prTotalPendiente').textContent = formatCurrency(sumPendiente);
+
+        const container = document.getElementById('listaPrestamos');
+        if (prestamosRich.length === 0) {
+            container.innerHTML = '<div class="card-glass rounded-xl p-6 text-center text-slate-400">No hay préstamos para los filtros seleccionados</div>';
+            return;
+        }
+
+        container.innerHTML = prestamosRich.map(p => {
+            const pct = p.saldo <= 0 ? 100 : Math.min(100, Math.round((p.totalPagado / (p.monto_total || 1)) * 100));
+            const estadoColor = p.saldo <= 0 ? 'text-green-400' : 'text-orange-400';
+            const estadoLabel = p.saldo <= 0 ? '✅ Saldado' : '⏳ Activo';
+            const tipoBadge  = p.tipo_cobro === 'porcentaje'
+                ? `<span class="text-xs bg-purple-700 bg-opacity-50 text-purple-200 px-2 py-0.5 rounded-full">${p.porcentaje}% interés</span>`
+                : `<span class="text-xs bg-slate-600 text-slate-300 px-2 py-0.5 rounded-full">Cobro neto</span>`;
+            return `
+            <div class="card-glass rounded-xl p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <div class="font-bold text-white text-base">${p.establecimiento_nombre}</div>
+                        <div class="text-xs text-slate-400 mt-0.5">${p.usuario_nombre} — Inicio: ${p.fecha_inicio}${p.descripcion ? ' — ' + p.descripcion : ''}</div>
+                        <div class="mt-1">${tipoBadge}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold ${estadoColor}">${estadoLabel}</span>
+                        <button onclick="verDetallePrestamo(${p.id})"
+                                class="px-3 py-1.5 bg-blue-700 bg-opacity-50 hover:bg-opacity-80 rounded-lg text-xs text-blue-200 transition-all">
+                            Ver detalle
+                        </button>
+                        <button onclick="confirmarEliminarPrestamo(${p.id}, '${(p.establecimiento_nombre || '').replace(/'/g, "\\\'")}')"
+                                class="px-3 py-1.5 bg-red-700 bg-opacity-50 hover:bg-opacity-80 rounded-lg text-xs text-red-300 transition-all">
+                            🗑
+                        </button>
+                    </div>
+                </div>
+                <!-- Montos -->
+                <div class="grid grid-cols-3 gap-3 mb-3">
+                    <div class="card-glass rounded-lg p-2 text-center">
+                        <div class="text-[10px] text-slate-400">PRESTADO</div>
+                        <div class="font-bold text-white text-sm">${formatCurrency(p.monto_original)}</div>
+                    </div>
+                    <div class="card-glass rounded-lg p-2 text-center">
+                        <div class="text-[10px] text-slate-400">A COBRAR</div>
+                        <div class="font-bold text-emerald-400 text-sm">${formatCurrency(p.monto_total)}</div>
+                    </div>
+                    <div class="card-glass rounded-lg p-2 text-center">
+                        <div class="text-[10px] text-slate-400">COBRADO</div>
+                        <div class="font-bold text-blue-400 text-sm">${formatCurrency(p.totalPagado)}</div>
+                    </div>
+                </div>
+                <!-- Barra progreso -->
+                <div class="mb-1 flex items-center justify-between text-xs text-slate-400">
+                    <span>Progreso de cobro</span>
+                    <span class="font-bold ${p.saldo <= 0 ? 'text-green-400' : 'text-orange-400'}">${pct}% — Pendiente: ${formatCurrency(p.saldo)}</span>
+                </div>
+                <div class="w-full bg-slate-700 rounded-full h-2.5">
+                    <div class="h-2.5 rounded-full transition-all ${p.saldo <= 0 ? 'bg-green-500' : 'bg-orange-500'}" style="width: ${pct}%"></div>
+                </div>
+            </div>`;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        const isTableMissing = e.message?.includes('does not exist') || e.code === '42P01';
+        const container = document.getElementById('listaPrestamos');
+        if (isTableMissing) {
+            container.innerHTML = `
+                <div class="card-glass rounded-xl p-6 text-center">
+                    <div class="text-3xl mb-3">⚙️</div>
+                    <div class="text-white font-bold mb-2">Tabla "prestamos" no configurada</div>
+                    <div class="text-slate-400 text-sm">Creá la tabla en el dashboard de InsForge con las columnas:<br>
+                    <code class="text-purple-300 text-xs">id, establecimiento_nombre, usuario_nombre, monto_original, tipo_cobro, porcentaje, monto_total, descripcion, fecha_inicio, estado, created_at</code></div>
+                </div>`;
+        } else {
+            showNotification('Error cargando préstamos: ' + e.message, 'error');
+        }
+    }
+}
+
+async function abrirModalPrestamo() {
+    // Load establishments from colectas (unique names)
+    try {
+        const { data } = await insforge.database.from('colectas').select('establecimiento').order('establecimiento');
+        const nombres = [...new Set((data || []).map(c => c.establecimiento).filter(Boolean))].sort();
+        document.getElementById('prestamoEstablecimientoList').innerHTML =
+            nombres.map(n => `<option value="${n}">`).join('');
+    } catch(e) { /* lista vacía si falla */ }
+    // Reset form
+    document.getElementById('prestamoEstablecimiento').value = '';
+    document.getElementById('prestamoMonto').value = '';
+    document.getElementById('prestamoPorcentaje').value = '';
+    document.getElementById('prestamoDescripcion').value = '';
+    document.getElementById('prestamoFechaInicio').value = new Date().toISOString().split('T')[0];
+    document.querySelector('input[name="tipoCobro"][value="neto"]').checked = true;
+    document.getElementById('campoPorcentaje').classList.add('hidden');
+    document.getElementById('prestamoTotalCalculado').textContent = '$0.00';
+    document.getElementById('modalPrestamo').classList.remove('hidden');
+}
+
+function cerrarModalPrestamo() {
+    document.getElementById('modalPrestamo').classList.add('hidden');
+}
+
+function calcularTotalPrestamo() {
+    const monto = parseFloat(document.getElementById('prestamoMonto').value) || 0;
+    const tipo  = document.querySelector('input[name="tipoCobro"]:checked')?.value || 'neto';
+    const pct   = parseFloat(document.getElementById('prestamoPorcentaje').value) || 0;
+    // Toggle porcentaje field visibility
+    document.getElementById('campoPorcentaje').classList.toggle('hidden', tipo !== 'porcentaje');
+    const total = tipo === 'porcentaje' ? monto * (1 + pct / 100) : monto;
+    document.getElementById('prestamoTotalCalculado').textContent = formatCurrency(total);
+}
+
+async function guardarPrestamo() {
+    const establecimiento = document.getElementById('prestamoEstablecimiento').value;
+    const usuario         = document.getElementById('prestamoUsuarioForm').value;
+    const monto           = parseFloat(document.getElementById('prestamoMonto').value) || 0;
+    const tipo            = document.querySelector('input[name="tipoCobro"]:checked')?.value || 'neto';
+    const pct             = parseFloat(document.getElementById('prestamoPorcentaje').value) || 0;
+    const descripcion     = document.getElementById('prestamoDescripcion').value.trim();
+    const fechaInicio     = document.getElementById('prestamoFechaInicio').value;
+
+    if (!establecimiento) { showNotification('Selecciona un establecimiento', 'error'); return; }
+    if (!usuario)          { showNotification('Selecciona un usuario', 'error'); return; }
+    if (monto <= 0)        { showNotification('El monto debe ser mayor a 0', 'error'); return; }
+    if (!fechaInicio)      { showNotification('Selecciona la fecha de inicio', 'error'); return; }
+
+    const montoTotal = tipo === 'porcentaje' ? monto * (1 + pct / 100) : monto;
+
+    try {
+        const { error } = await insforge.database.from('prestamos').insert({
+            establecimiento_nombre: establecimiento,
+            usuario_nombre: usuario,
+            monto_original: monto,
+            tipo_cobro: tipo,
+            porcentaje: tipo === 'porcentaje' ? pct : null,
+            monto_total: montoTotal,
+            descripcion: descripcion || null,
+            fecha_inicio: fechaInicio,
+            estado: 'activo',
+            created_at: Date.now()
+        });
+        if (error) throw error;
+        cerrarModalPrestamo();
+        showNotification('✅ Préstamo creado correctamente', 'success');
+        cargarPrestamos();
+    } catch(e) {
+        showNotification('Error: ' + e.message, 'error');
+    }
+}
+
+async function verDetallePrestamo(id) {
+    try {
+        const { data, error } = await insforge.database.from('prestamos').select('*').eq('id', id).limit(1);
+        if (error) throw error;
+        const p = (data || [])[0];
+        if (!p) { showNotification('Préstamo no encontrado', 'error'); return; }
+
+        const estNombre = (p.establecimiento_nombre || '').trim().toLowerCase();
+
+        // Abonos desde movimientos (con establecimiento_nombre)
+        const { data: abMovData } = await insforge.database.from('movimientos').select('*')
+            .eq('tipo', 'abono')
+            .gte('fecha', p.fecha_inicio)
+            .order('fecha', { ascending: false });
+        const abonosMov = (abMovData || [])
+            .filter(a => (a.establecimiento_nombre || '').trim().toLowerCase() === estNombre)
+            .map(a => ({ fecha: a.fecha, monto: parseFloat(a.monto) || 0, descripcion: a.descripcion || 'Abono', origen: 'Movimiento' }));
+
+        // Abonos desde colectas (datos_json.totales.abono)
+        const { data: abColData } = await insforge.database.from('colectas')
+            .select('establecimiento, fecha, datos_json')
+            .gte('fecha', p.fecha_inicio)
+            .order('fecha', { ascending: false });
+        const abonosCol = (abColData || [])
+            .filter(c => (c.establecimiento || '').trim().toLowerCase() === estNombre)
+            .map(c => ({ fecha: c.fecha, monto: parseFloat(c.datos_json?.totales?.abono) || 0, descripcion: 'Abono en colecta', origen: 'Colecta' }))
+            .filter(a => a.monto > 0);
+
+        const abonos = [...abonosMov, ...abonosCol].sort((a, b) => b.fecha.localeCompare(a.fecha));
+        const totalPagado = abonos.reduce((s, a) => s + a.monto, 0);
+        const saldo = Math.max(0, (p.monto_total || 0) - totalPagado);
+        const pct = Math.min(100, Math.round((totalPagado / (p.monto_total || 1)) * 100));
+
+        document.getElementById('detallePrestTitulo').textContent = '💰 ' + p.establecimiento_nombre;
+
+        const tipoLabel = p.tipo_cobro === 'porcentaje' ? `Con ${p.porcentaje}% de interés` : 'Cobro neto';
+        const abonosHtml = abonos.length === 0
+            ? '<div class="text-center text-slate-400 text-sm py-4">Sin abonos registrados</div>'
+            : abonos.map(a => `
+                <div class="flex items-center justify-between py-2 border-b border-slate-700">
+                    <div>
+                        <div class="text-sm text-white">${a.descripcion}</div>
+                        <div class="text-xs text-slate-400">${a.fecha} — <span class="text-purple-300">${a.origen}</span></div>
+                    </div>
+                    <div class="font-bold text-blue-400">+${formatCurrency(a.monto)}</div>
+                </div>`).join('');
+
+        document.getElementById('detallePrestContenido').innerHTML = `
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="card-glass rounded-lg p-3">
+                    <div class="text-[10px] text-slate-400">USUARIO</div>
+                    <div class="font-bold text-white text-sm">${p.usuario_nombre}</div>
+                </div>
+                <div class="card-glass rounded-lg p-3">
+                    <div class="text-[10px] text-slate-400">TIPO</div>
+                    <div class="font-bold text-purple-300 text-sm">${tipoLabel}</div>
+                </div>
+                <div class="card-glass rounded-lg p-3">
+                    <div class="text-[10px] text-slate-400">MONTO PRESTADO</div>
+                    <div class="font-bold text-white text-sm">${formatCurrency(p.monto_original)}</div>
+                </div>
+                <div class="card-glass rounded-lg p-3">
+                    <div class="text-[10px] text-slate-400">TOTAL A COBRAR</div>
+                    <div class="font-bold text-emerald-400 text-sm">${formatCurrency(p.monto_total)}</div>
+                </div>
+                <div class="card-glass rounded-lg p-3">
+                    <div class="text-[10px] text-slate-400">COBRADO</div>
+                    <div class="font-bold text-blue-400 text-sm">${formatCurrency(totalPagado)}</div>
+                </div>
+                <div class="card-glass rounded-lg p-3">
+                    <div class="text-[10px] text-slate-400">PENDIENTE</div>
+                    <div class="font-bold text-orange-400 text-sm">${formatCurrency(saldo)}</div>
+                </div>
+            </div>
+            <div class="mb-1 flex items-center justify-between text-xs text-slate-400">
+                <span>Progreso de cobro</span>
+                <span class="font-bold">${pct}%</span>
+            </div>
+            <div class="w-full bg-slate-700 rounded-full h-3 mb-4">
+                <div class="h-3 rounded-full ${saldo <= 0 ? 'bg-green-500' : 'bg-orange-500'}" style="width:${pct}%"></div>
+            </div>
+            <h4 class="text-sm font-bold text-white mb-2">📋 Abonos registrados (${abonos.length})</h4>
+            <div>${abonosHtml}</div>`;
+
+        document.getElementById('modalDetallePrestamo').classList.remove('hidden');
+    } catch(e) {
+        showNotification('Error: ' + e.message, 'error');
+    }
+}
+
+function cerrarDetallePrestamo() {
+    document.getElementById('modalDetallePrestamo').classList.add('hidden');
+}
+
+function confirmarEliminarPrestamo(id, nombre) {
+    if (!confirm(`¿Eliminar el préstamo de "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    eliminarPrestamo(id);
+}
+
+async function eliminarPrestamo(id) {
+    try {
+        const { error } = await insforge.database.from('prestamos').delete().eq('id', id);
+        if (error) throw error;
+        showNotification('Préstamo eliminado', 'success');
+        cargarPrestamos();
+    } catch(e) {
+        showNotification('Error: ' + e.message, 'error');
+    }
 }
 
 // ========== REAL-TIME / POLLING ==========
