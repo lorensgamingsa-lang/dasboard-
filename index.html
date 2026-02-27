@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -205,27 +206,6 @@
 
     <!-- ===== SECCIÓN: DASHBOARD ===== -->
     <div id="seccionDashboard" class="hidden fade-in">
-
-        <!-- Totales Generales (parte superior) -->
-        <div class="grid grid-cols-2 gap-4 mb-4">
-            <div class="card-glass rounded-xl p-5" style="border: 1px solid rgba(168,85,247,0.5);">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-purple-300 tracking-wider">TOTAL COLECTADO</span>
-                    <span class="text-3xl">🎰</span>
-                </div>
-                <div class="text-3xl font-bold text-white" id="adMetricaTotalColectado">$0.00</div>
-                <div class="text-xs text-slate-400 mt-1">Suma de entradas de todas las máquinas</div>
-            </div>
-            <div class="card-glass rounded-xl p-5" style="border: 1px solid rgba(236,72,153,0.5);">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-semibold text-pink-300 tracking-wider">TOTAL PREMIOS</span>
-                    <span class="text-3xl">🎁</span>
-                </div>
-                <div class="text-3xl font-bold text-pink-400" id="adMetricaTotalPremios">$0.00</div>
-                <div class="text-xs text-slate-400 mt-1">Suma de pagos de todas las máquinas</div>
-            </div>
-        </div>
-
         <!-- Filtros -->
         <div class="card-glass rounded-lg p-4 mb-4">
             <div class="flex flex-wrap items-center gap-4">
@@ -334,9 +314,9 @@
                 </div>
             </div>
             <!-- Tendencia de Pérdidas -->
-            <div class="card-glass rounded-xl p-4 flex flex-col">
+            <div class="card-glass rounded-xl p-4">
                 <h3 class="text-sm font-bold text-white mb-3">📉 Tendencia de Pérdidas</h3>
-                <div id="adChartPerdidasContainer" style="position: relative; flex: 1; min-height: 280px;">
+                <div id="adChartPerdidasContainer" style="position: relative; height: 280px;">
                     <canvas id="adChartPerdidas"></canvas>
                 </div>
             </div>
@@ -374,38 +354,6 @@
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-bold text-white">🏷️ Rentabilidad por Chapa</h3>
                 <span class="text-xs bg-orange-900 text-orange-300 px-2 py-1 rounded-full font-semibold">Impuesto: $37.50 / chapa</span>
-            </div>
-            <!-- Filtros -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-                <div>
-                    <label class="text-xs text-purple-300 block mb-1">Local</label>
-                    <select id="filtroChapasLocal" onchange="aplicarFiltrosChapas()"
-                            class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400">
-                        <option value="">Todos los locales</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-purple-300 block mb-1">Chapa</label>
-                    <input type="text" id="filtroChapasChapa" oninput="aplicarFiltrosChapas()" placeholder="Buscar chapa..."
-                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400 placeholder-slate-500">
-                </div>
-                <div>
-                    <label class="text-xs text-purple-300 block mb-1">Desde</label>
-                    <input type="date" id="filtroChapasDesde" onchange="aplicarFiltrosChapas()"
-                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400">
-                </div>
-                <div>
-                    <label class="text-xs text-purple-300 block mb-1">Hasta</label>
-                    <input type="date" id="filtroChapasHasta" onchange="aplicarFiltrosChapas()"
-                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-purple-400">
-                </div>
-            </div>
-            <div class="flex items-center gap-2 mb-4">
-                <input type="checkbox" id="filtroChapasNoCubrieron" onchange="aplicarFiltrosChapas()"
-                       class="w-4 h-4 accent-red-500 cursor-pointer">
-                <label class="text-xs text-slate-300 cursor-pointer" for="filtroChapasNoCubrieron">
-                    Mostrar solo chapas que <span class="text-red-400 font-semibold">no cubrieron</span> el impuesto
-                </label>
             </div>
             <div id="adRentabilidadChapasContainer">
                 <div class="text-center py-8 text-slate-400">Cargando datos...</div>
@@ -504,7 +452,6 @@ let reAuthInterval = null;
 let consecutiveErrors = 0;
 let adRankingCompleto = [];
 let adMostrarTodosRanking = false;
-let adColectasParaChapas = [];
 
 // ========== INSFORGE SDK ==========
 async function inicializarInsForge() {
@@ -887,7 +834,6 @@ async function cargarDashboardAdmin() {
         let totalARecibir = 0, totalGananciaCU = 0, totalImpuestoJCJ = 0;
         let totalRetencion55 = 0, totalAbonosColectas = 0, totalDepositosColectas = 0;
         let totalDiferenciaColectas = 0, totalPendienteColectas = 0;
-        let totalColectado = 0, totalPremios = 0;
 
         listaColectas.forEach(c => {
             const datos = c.datos_json?.totales || {};
@@ -899,11 +845,6 @@ async function cargarDashboardAdmin() {
             totalDepositosColectas += parseFloat(datos.deposito) || 0;
             totalDiferenciaColectas += parseFloat(datos.difPorcentaje) || 0;
             totalPendienteColectas += parseFloat(datos.pendiente) || 0;
-            // Sumar entradas y salidas de máquinas
-            (c.datos_json?.maquinas || []).forEach(m => {
-                totalColectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-                totalPremios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
-            });
         });
 
         // Calculate metrics from movimientos
@@ -917,10 +858,6 @@ async function cargarDashboardAdmin() {
         const totalAbonos = totalAbonosColectas + totalAbonosMov;
         const totalDepositos = totalDepositosColectas + totalDepositosMov;
         const balance = totalARecibir + totalAbonosMov - totalGastos - totalDepositosMov;
-
-        // Update totales generales
-        document.getElementById('adMetricaTotalColectado').textContent = formatCurrency(totalColectado);
-        document.getElementById('adMetricaTotalPremios').textContent = formatCurrency(totalPremios);
 
         // Update metric cards
         document.getElementById('adMetricaGanancia').textContent = formatCurrency(totalGananciaCU);
@@ -1133,11 +1070,10 @@ function crearGraficaPerdidas(colectas, movimientos) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: { padding: { top: 24, bottom: 0, left: 0, right: 0 } },
             plugins: { legend: { display: false } },
             scales: {
-                x: { ticks: { color: 'white', font: { size: 13, weight: 'bold' }, padding: 4 }, grid: { display: false } },
-                y: { beginAtZero: true, grace: 0, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                x: { ticks: { color: 'white', font: { size: 13, weight: 'bold' } }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
             }
         },
         plugins: [{
@@ -1252,52 +1188,13 @@ function crearTablaMaquinas(colectas) {
 
 // ========== RENTABILIDAD POR CHAPA ==========
 function crearTablaRentabilidadChapasAdmin(colectas) {
-    adColectasParaChapas = colectas || [];
-
-    // Poblar dropdown de locales
-    const localesSet = new Set();
-    adColectasParaChapas.forEach(c => { if (c.establecimiento) localesSet.add(c.establecimiento); });
-    const selectLocal = document.getElementById('filtroChapasLocal');
-    if (selectLocal) {
-        const valorActual = selectLocal.value;
-        selectLocal.innerHTML = '<option value="">Todos los locales</option>' +
-            [...localesSet].sort().map(l => `<option value="${l}"${l === valorActual ? ' selected' : ''}>${l}</option>`).join('');
-    }
-
-    // Establecer fechas por defecto al rango del período cargado
-    const fechas = adColectasParaChapas.map(c => c.fecha).filter(Boolean).sort();
-    if (fechas.length > 0) {
-        const desdeInput = document.getElementById('filtroChapasDesde');
-        const hastaInput = document.getElementById('filtroChapasHasta');
-        if (desdeInput && !desdeInput.value) desdeInput.value = fechas[0];
-        if (hastaInput && !hastaInput.value) hastaInput.value = fechas[fechas.length - 1];
-    }
-
-    aplicarFiltrosChapas();
-}
-
-function aplicarFiltrosChapas() {
     const container = document.getElementById('adRentabilidadChapasContainer');
     if (!container) return;
-
-    const filtroLocal = document.getElementById('filtroChapasLocal')?.value || '';
-    const filtroChapa = (document.getElementById('filtroChapasChapa')?.value || '').toLowerCase().trim();
-    const filtroDesde = document.getElementById('filtroChapasDesde')?.value || '';
-    const filtroHasta = document.getElementById('filtroChapasHasta')?.value || '';
-    const soloNoCubrieron = document.getElementById('filtroChapasNoCubrieron')?.checked || false;
 
     const IMPUESTO_POR_CHAPA = 37.5;
     const datosPorChapa = {};
 
-    // Filtrar colectas por local y fechas
-    let colectasFiltradas = adColectasParaChapas;
-    if (filtroLocal) colectasFiltradas = colectasFiltradas.filter(c => c.establecimiento === filtroLocal);
-    if (filtroDesde) colectasFiltradas = colectasFiltradas.filter(c => c.fecha >= filtroDesde);
-    if (filtroHasta) colectasFiltradas = colectasFiltradas.filter(c => c.fecha <= filtroHasta);
-
-    // Agregar por chapa
-    colectasFiltradas.forEach(c => {
-        const local = c.establecimiento || 'Sin local';
+    colectas.forEach(c => {
         const maquinas = c.datos_json?.maquinas || [];
         maquinas.forEach(m => {
             const chapa = (m.chapa || 'sin-chapa').toLowerCase().trim();
@@ -1306,23 +1203,21 @@ function aplicarFiltrosChapas() {
             const salida = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
             const ganancia = entrada - salida;
             if (!datosPorChapa[chapa]) {
-                datosPorChapa[chapa] = { chapa, juego, gananciaBruta: 0, apariciones: 0, locales: new Set() };
+                datosPorChapa[chapa] = { chapa, juego, gananciaBruta: 0, apariciones: 0 };
             }
             datosPorChapa[chapa].gananciaBruta += ganancia;
             datosPorChapa[chapa].apariciones += 1;
             datosPorChapa[chapa].juego = juego;
-            datosPorChapa[chapa].locales.add(local);
         });
     });
 
-    let ranking = Object.values(datosPorChapa)
+    const ranking = Object.values(datosPorChapa)
         .map(item => {
             const impuesto = item.apariciones * IMPUESTO_POR_CHAPA;
             const gananciaNeta = item.gananciaBruta - impuesto;
             return {
                 chapa: item.chapa,
                 juego: item.juego,
-                local: [...item.locales].join(', '),
                 gananciaBruta: item.gananciaBruta,
                 apariciones: item.apariciones,
                 impuesto,
@@ -1332,14 +1227,8 @@ function aplicarFiltrosChapas() {
         })
         .sort((a, b) => b.gananciaNeta - a.gananciaNeta);
 
-    // Filtrar por texto de chapa
-    if (filtroChapa) ranking = ranking.filter(r => r.chapa.includes(filtroChapa));
-
-    // Filtrar solo no cubrieron
-    if (soloNoCubrieron) ranking = ranking.filter(r => !r.cubrioImpuesto);
-
     if (ranking.length === 0) {
-        container.innerHTML = `<div class="text-center py-8 text-slate-400">No hay datos para los filtros seleccionados</div>`;
+        container.innerHTML = `<div class="text-center py-8 text-slate-400">No hay datos de chapas para el período seleccionado</div>`;
         return;
     }
 
@@ -1375,7 +1264,6 @@ function aplicarFiltrosChapas() {
                         <th class="px-2 py-2 text-left">#</th>
                         <th class="px-2 py-2 text-left">Chapa</th>
                         <th class="px-2 py-2 text-left">Juego</th>
-                        <th class="px-2 py-2 text-left">Local</th>
                         <th class="px-2 py-2 text-right">Bruta</th>
                         <th class="px-2 py-2 text-right">Imp.</th>
                         <th class="px-2 py-2 text-right">Neta</th>
@@ -1388,7 +1276,6 @@ function aplicarFiltrosChapas() {
                         <td class="px-2 py-2 font-bold text-purple-400">${i + 1}</td>
                         <td class="px-2 py-2 font-mono text-yellow-300 uppercase">${item.chapa}</td>
                         <td class="px-2 py-2 text-slate-200">${item.juego} <span class="text-slate-500">(${item.apariciones}x)</span></td>
-                        <td class="px-2 py-2 text-blue-300">${item.local}</td>
                         <td class="px-2 py-2 text-right font-mono text-slate-300">$${item.gananciaBruta.toFixed(2)}</td>
                         <td class="px-2 py-2 text-right font-mono text-orange-400">-$${item.impuesto.toFixed(2)}</td>
                         <td class="px-2 py-2 text-right font-mono font-bold ${item.gananciaNeta >= 0 ? 'text-green-400' : 'text-red-400'}">$${item.gananciaNeta.toFixed(2)}</td>
@@ -1404,7 +1291,7 @@ function aplicarFiltrosChapas() {
             </table>
         </div>
         <div class="mt-3 text-right text-xs text-slate-500">
-            Total impuestos en filtro actual: <span class="text-orange-400 font-semibold">$${totalImpuestos.toFixed(2)}</span>
+            Total impuestos generados en el período: <span class="text-orange-400 font-semibold">$${totalImpuestos.toFixed(2)}</span>
         </div>
     `;
 }
