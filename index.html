@@ -206,6 +206,9 @@
         <button onclick="navigateTo('salas')" class="nav-tab px-4 py-2.5 rounded-lg text-sm shrink-0" data-page="salas">
             🏪 Salas
         </button>
+        <button onclick="navigateTo('dashboardGlobal')" class="nav-tab px-4 py-2.5 rounded-lg text-sm shrink-0" data-page="dashboardGlobal">
+            🌐 Dashboard Global
+        </button>
     </div>
 
     <!-- ===== SECCIÓN: USUARIOS ===== -->
@@ -300,6 +303,22 @@
                         <label class="text-xs text-purple-300 block mb-1">Hasta</label>
                         <input type="date" id="fechaHastaAdmin" onchange="cargarDashboardAdmin()"
                                class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+                    </div>
+                </div>
+                <div class="ml-auto flex gap-2">
+                    <div>
+                        <label class="text-xs text-transparent block mb-1">·</label>
+                        <button onclick="abrirModalDatoHistorico()"
+                                class="px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white text-sm font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center gap-1.5">
+                            📥 Dato Histórico
+                        </button>
+                    </div>
+                    <div>
+                        <label class="text-xs text-transparent block mb-1">·</label>
+                        <button onclick="abrirModalGestionarHistoricos()"
+                                class="px-3 py-2 bg-slate-700 border border-slate-500 rounded-lg text-slate-200 text-sm font-bold hover:bg-slate-600 transition-all flex items-center gap-1.5">
+                            🗑️ Históricos
+                        </button>
                     </div>
                 </div>
             </div>
@@ -965,6 +984,84 @@
 
 </div>
 
+<!-- ===== SECCIÓN: DASHBOARD GLOBAL ===== -->
+<div id="seccionDashboardGlobal" class="hidden fade-in" style="max-width:80rem;margin:0 auto;padding:0 1rem 3rem">
+
+    <!-- Header + filtro de período -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h2 class="text-lg font-bold">🌐 Dashboard Global</h2>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-semibold text-purple-300">Período:</span>
+            <select id="dgFiltroPeriodo" onchange="cambiarPeriodoDG()"
+                    class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
+                <option value="3">3 meses</option>
+                <option value="6">6 meses</option>
+                <option value="12" selected>12 meses</option>
+                <option value="24">24 meses</option>
+                <option value="personalizado">📅 Personalizado</option>
+            </select>
+            <div id="dgFechasCustom" style="display:none;gap:6px;align-items:center;" class="flex">
+                <input type="date" id="dgDesde"
+                       class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+                <span class="text-slate-400 text-sm">—</span>
+                <input type="date" id="dgHasta"
+                       class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+                <button onclick="cargarDashboardGlobal()"
+                        class="px-3 py-2 bg-purple-600 rounded-lg text-white text-sm font-bold hover:bg-purple-700 transition-all">
+                    Aplicar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Por Usuario ── -->
+    <div class="mb-8">
+        <h3 class="text-base font-bold text-white mb-4 border-l-4 border-purple-500 pl-3">👥 Por Usuario</h3>
+        <div id="dgTarjetasUsuarios" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
+            <div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm" style="grid-column:1/-1;">Cargando...</div>
+        </div>
+        <div class="card-glass rounded-xl p-4">
+            <p class="text-xs text-slate-400 mb-3">Evolución mensual de colectado y premios por usuario</p>
+            <div style="height:320px;position:relative;">
+                <canvas id="dgChartUsuarios"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Por Sala ── -->
+    <div class="mb-8">
+        <h3 class="text-base font-bold text-white mb-4 border-l-4 border-cyan-500 pl-3">🏪 Por Sala</h3>
+        <div id="dgTarjetasSalas" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
+            <div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm" style="grid-column:1/-1;">Cargando...</div>
+        </div>
+        <div class="card-glass rounded-xl p-4">
+            <p class="text-xs text-slate-400 mb-3">Evolución mensual de colectado y premios por sala</p>
+            <div style="height:320px;position:relative;">
+                <canvas id="dgChartSalas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Líneas globales ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+        <div class="card-glass rounded-xl p-4">
+            <h3 class="text-sm font-bold text-white mb-1">📈 Tendencia Global — Usuarios</h3>
+            <p class="text-xs text-slate-400 mb-3">Total colectado y premios de todos los usuarios por mes</p>
+            <div style="height:280px;position:relative;">
+                <canvas id="dgChartLineUsuarios"></canvas>
+            </div>
+        </div>
+        <div class="card-glass rounded-xl p-4">
+            <h3 class="text-sm font-bold text-white mb-1">📈 Tendencia Global — Salas</h3>
+            <p class="text-xs text-slate-400 mb-3">Total colectado y premios de todas las salas por mes</p>
+            <div style="height:280px;position:relative;">
+                <canvas id="dgChartLineSalas"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 <!-- ================ MODAL: NUEVO REGISTRO SALA ================ -->
 <div id="modalRegistroSala" class="modal-overlay hidden">
     <div class="card-glass-strong rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in mx-4">
@@ -1348,6 +1445,73 @@
     </div>
 </div>
 
+<!-- ================ MODAL: DATO HISTÓRICO ================ -->
+<div id="modalDatoHistorico" class="modal-overlay hidden">
+    <div class="card-glass-strong rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in mx-4">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold">📥 Ingresar Dato Histórico</h3>
+            <button onclick="cerrarModalDatoHistorico()" class="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
+        <p class="text-xs text-slate-400 mb-5">Los datos ingresados se sumarán a los totales de colectado y premios del mes seleccionado, identificados como <span class="text-purple-300 font-semibold">REGISTRO HISTÓRICO</span>.</p>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Usuario *</label>
+                <select id="histUsuario"
+                        class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+                    <option value="">Seleccionar usuario...</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Mes *</label>
+                <input type="month" id="histMes"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-green-300 block mb-1">Total Entrada (Colectado) *</label>
+                    <input type="number" id="histEntrada" min="0" step="1" placeholder="0"
+                           class="w-full bg-slate-700 border border-green-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-green-400">
+                </div>
+                <div>
+                    <label class="text-xs text-red-300 block mb-1">Total Premios (Salida) *</label>
+                    <input type="number" id="histPremios" min="0" step="1" placeholder="0"
+                           class="w-full bg-slate-700 border border-red-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-red-400">
+                </div>
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Nota / Observación (opcional)</label>
+                <input type="text" id="histNota" placeholder="Ej: Datos de cierre noviembre 2024"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <p id="histError" class="text-red-400 text-xs hidden"></p>
+            <div class="flex gap-3 pt-1">
+                <button onclick="cerrarModalDatoHistorico()"
+                        class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition-all">
+                    Cancelar
+                </button>
+                <button onclick="guardarDatoHistorico()" id="btnGuardarHistorico"
+                        class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white text-sm font-bold hover:from-purple-700 hover:to-pink-700 transition-all">
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================ MODAL: GESTIONAR HISTÓRICOS ================ -->
+<div id="modalGestionarHistoricos" class="modal-overlay hidden">
+    <div class="card-glass-strong rounded-2xl p-6 w-full shadow-2xl fade-in mx-4" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column;">
+        <div class="flex items-center justify-between mb-4 shrink-0">
+            <h3 class="text-lg font-bold">🗑️ Gestionar Registros Históricos</h3>
+            <button onclick="cerrarModalGestionarHistoricos()" class="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
+        <p class="text-xs text-slate-400 mb-4 shrink-0">Solo se muestran los registros ingresados manualmente como históricos. Los datos reales de colectas no aparecen aquí.</p>
+        <div id="listaHistoricos" class="overflow-y-auto flex-1 space-y-2 pr-1">
+            <div class="text-center text-slate-400 py-8">Cargando...</div>
+        </div>
+    </div>
+</div>
+
 <script>
 // ========== CONFIGURACIÓN ==========
 const INSFORGE_CONFIG = {
@@ -1520,7 +1684,7 @@ async function mostrarPanel() {
 }
 
 function navigateTo(page) {
-    ['seccionUsuarios', 'seccionDashboard', 'seccionColectas', 'seccionPerdidas', 'seccionPrestamos', 'seccionSalas'].forEach(id => {
+    ['seccionUsuarios', 'seccionDashboard', 'seccionColectas', 'seccionPerdidas', 'seccionPrestamos', 'seccionSalas', 'seccionDashboardGlobal'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
     });
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1544,6 +1708,9 @@ function navigateTo(page) {
     } else if (page === 'salas') {
         document.getElementById('seccionSalas').classList.remove('hidden');
         cargarSalas();
+    } else if (page === 'dashboardGlobal') {
+        document.getElementById('seccionDashboardGlobal').classList.remove('hidden');
+        cargarDashboardGlobal();
     }
 }
 
@@ -1631,6 +1798,167 @@ function cambiarFiltroAdmin() {
     cargarDashboardAdmin();
 }
 
+// ========== DATO HISTÓRICO ==========
+function abrirModalDatoHistorico() {
+    document.getElementById('histError').classList.add('hidden');
+    document.getElementById('histEntrada').value = '';
+    document.getElementById('histPremios').value = '';
+    document.getElementById('histNota').value = '';
+    // Default: mes anterior
+    const hoy = new Date();
+    hoy.setDate(1);
+    hoy.setMonth(hoy.getMonth() - 1);
+    document.getElementById('histMes').value = hoy.toISOString().substring(0, 7);
+    document.getElementById('modalDatoHistorico').classList.remove('hidden');
+}
+
+function cerrarModalDatoHistorico() {
+    document.getElementById('modalDatoHistorico').classList.add('hidden');
+}
+
+async function guardarDatoHistorico() {
+    const errEl  = document.getElementById('histError');
+    const btnEl  = document.getElementById('btnGuardarHistorico');
+    errEl.classList.add('hidden');
+
+    const usuario = document.getElementById('histUsuario').value;
+    const mes     = document.getElementById('histMes').value;           // YYYY-MM
+    const entrada = parseInt(document.getElementById('histEntrada').value) || 0;
+    const premios = parseInt(document.getElementById('histPremios').value) || 0;
+    const nota    = document.getElementById('histNota').value.trim();
+
+    if (!usuario) { errEl.textContent = 'Seleccioná un usuario.'; errEl.classList.remove('hidden'); return; }
+    if (!mes)     { errEl.textContent = 'Seleccioná el mes.';     errEl.classList.remove('hidden'); return; }
+    if (entrada <= 0 && premios <= 0) {
+        errEl.textContent = 'Ingresá al menos un valor mayor a cero.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    btnEl.disabled = true;
+    btnEl.textContent = 'Guardando...';
+
+    try {
+        const fecha = mes + '-01';
+        const establecimiento = nota ? 'HISTÓRICO — ' + nota : 'REGISTRO HISTÓRICO';
+
+        const { error } = await insforge.database.from('colectas').insert({
+            fecha,
+            usuario_nombre: usuario,
+            establecimiento,
+            datos_json: {
+                maquinas: [{
+                    numero: 'HIST-1',
+                    pantalla: {
+                        entradaActual:   entrada,
+                        entradaAnterior: 0,
+                        salidaActual:    premios,
+                        salidaAnterior:  0
+                    }
+                }],
+                totales: {}
+            }
+        });
+
+        if (error) throw error;
+
+        showNotification('✅ Dato histórico guardado correctamente', 'success');
+        cerrarModalDatoHistorico();
+        cargarDashboardAdmin();
+    } catch (e) {
+        errEl.textContent = 'Error al guardar: ' + (e.message || e);
+        errEl.classList.remove('hidden');
+    } finally {
+        btnEl.disabled = false;
+        btnEl.textContent = 'Guardar';
+    }
+}
+
+// ========== GESTIONAR HISTÓRICOS ==========
+async function abrirModalGestionarHistoricos() {
+    document.getElementById('modalGestionarHistoricos').classList.remove('hidden');
+    await cargarListaHistoricos();
+}
+
+function cerrarModalGestionarHistoricos() {
+    document.getElementById('modalGestionarHistoricos').classList.add('hidden');
+}
+
+async function cargarListaHistoricos() {
+    const lista = document.getElementById('listaHistoricos');
+    lista.innerHTML = '<div class="text-center text-slate-400 py-8">Cargando...</div>';
+
+    try {
+        const { data, error } = await insforge.database
+            .from('colectas')
+            .select('id, fecha, usuario_nombre, establecimiento, datos_json')
+            .ilike('establecimiento', '%HISTÓRI%')
+            .order('fecha', { ascending: false });
+
+        if (error) throw error;
+        const registros = data || [];
+
+        if (!registros.length) {
+            lista.innerHTML = '<div class="text-center text-slate-400 py-10">No hay registros históricos cargados.</div>';
+            return;
+        }
+
+        lista.innerHTML = registros.map(r => {
+            const maq = r.datos_json?.maquinas?.[0];
+            const entrada = maq ? ((parseInt(maq.pantalla?.entradaActual) || 0) - (parseInt(maq.pantalla?.entradaAnterior) || 0)) : 0;
+            const premios = maq ? ((parseInt(maq.pantalla?.salidaActual)  || 0) - (parseInt(maq.pantalla?.salidaAnterior)  || 0)) : 0;
+            const [anio, mes] = r.fecha.split('-');
+            const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const mesNom = MESES[parseInt(mes) - 1] + ' ' + anio;
+            const nota = r.establecimiento.replace(/^REGISTRO HISTÓRICO$/, '').replace(/^HISTÓRICO — /, '');
+
+            return `<div class="card-glass rounded-xl p-4 flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <span class="text-sm font-bold text-white">${mesNom}</span>
+                        <span class="text-xs bg-purple-900 bg-opacity-60 text-purple-300 px-2 py-0.5 rounded-full">${r.usuario_nombre}</span>
+                        ${nota ? `<span class="text-xs text-slate-400 italic truncate">${nota}</span>` : ''}
+                    </div>
+                    <div class="flex gap-4 text-xs">
+                        <span class="text-slate-400">Entrada: <span class="text-green-400 font-semibold">$${entrada.toLocaleString('es-PA', {minimumFractionDigits:2})}</span></span>
+                        <span class="text-slate-400">Premios: <span class="text-red-400 font-semibold">$${premios.toLocaleString('es-PA', {minimumFractionDigits:2})}</span></span>
+                    </div>
+                </div>
+                <button onclick="eliminarHistorico('${r.id}', this)"
+                        class="shrink-0 px-3 py-2 bg-red-900 bg-opacity-40 border border-red-700 border-opacity-50 rounded-lg text-red-400 text-xs font-bold hover:bg-red-800 hover:bg-opacity-60 transition-all">
+                    🗑️ Eliminar
+                </button>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        lista.innerHTML = `<div class="text-center text-red-400 py-8">Error al cargar: ${e.message || e}</div>`;
+    }
+}
+
+async function eliminarHistorico(id, btn) {
+    if (!confirm('¿Eliminar este registro histórico? Esta acción no se puede deshacer.')) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    try {
+        const { error } = await insforge.database
+            .from('colectas')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        showNotification('🗑️ Registro histórico eliminado', 'info');
+        await cargarListaHistoricos();
+        cargarDashboardAdmin();
+    } catch (e) {
+        btn.disabled = false;
+        btn.textContent = '🗑️ Eliminar';
+        showNotification('Error al eliminar: ' + (e.message || e), 'error');
+    }
+}
+
 // ========== FILTRO USUARIOS DROPDOWN ==========
 async function cargarFiltroUsuarios() {
     try {
@@ -1647,6 +1975,7 @@ async function cargarFiltroUsuarios() {
         const optSelect = '<option value="">Seleccionar...</option>' +
             usuarios.map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
         document.getElementById('prestamoUsuarioForm').innerHTML = optSelect;
+        document.getElementById('histUsuario').innerHTML = optSelect;
     } catch (e) {
         console.error('Error cargando filtro usuarios:', e);
     }
@@ -2119,15 +2448,21 @@ function crearGraficaComparativa(colectas, fechaInicio, fechaFin) {
     });
 
     new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: [mesAnteriorNombre, mesActualNombre],
             datasets: [{
                 label: 'Ganancia',
                 data: [gananciaAnterior, gananciaActual],
-                backgroundColor: ['rgba(168, 85, 247, 0.7)', 'rgba(236, 72, 153, 0.7)'],
-                borderColor: ['rgb(168, 85, 247)', 'rgb(236, 72, 153)'],
-                borderWidth: 2
+                borderColor: 'rgb(168, 85, 247)',
+                backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                borderWidth: 2.5,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: ['rgba(168,85,247,1)', 'rgba(236,72,153,1)'],
+                pointBorderColor: ['rgb(168,85,247)', 'rgb(236,72,153)'],
+                tension: 0.3,
+                fill: true,
             }]
         },
         options: {
@@ -2135,7 +2470,7 @@ function crearGraficaComparativa(colectas, fechaInicio, fechaFin) {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                y: { beginAtZero: true, ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' }, border: { dash: [3,3] } },
                 x: { ticks: { color: 'white' }, grid: { display: false } }
             }
         }
@@ -2531,27 +2866,447 @@ function renderizarComparativaGlobal(colectas) {
                     },
                     grid: { color: 'rgba(148,163,184,0.08)' }
                 }
-            },
-            animation: {
-                onComplete: function() {
-                    const chart = this;
-                    const ctx2  = chart.ctx;
-                    ctx2.save();
-                    ctx2.font = 'bold 9px sans-serif';
-                    ctx2.textAlign = 'center';
-                    ctx2.textBaseline = 'bottom';
-                    chart.data.datasets.forEach((ds, di) => {
-                        const meta = chart.getDatasetMeta(di);
-                        meta.data.forEach((bar, i) => {
-                            const val = ds.data[i];
-                            if (!val) return;
-                            const lbl = '$' + val.toLocaleString('es-PA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            ctx2.fillStyle = 'rgba(255,255,255,0.85)';
-                            ctx2.fillText(lbl, bar.x, bar.y - 3);
-                        });
-                    });
-                    ctx2.restore();
+            }
+        }
+    });
+}
+
+// ========== DASHBOARD GLOBAL ==========
+function cambiarPeriodoDG() {
+    const val = document.getElementById('dgFiltroPeriodo')?.value;
+    const custom = document.getElementById('dgFechasCustom');
+    if (custom) custom.style.display = val === 'personalizado' ? 'flex' : 'none';
+    if (val !== 'personalizado') cargarDashboardGlobal();
+}
+
+async function cargarDashboardGlobal() {
+    const meses = document.getElementById('dgFiltroPeriodo')?.value || '12';
+    let fechaInicio, fechaFin;
+
+    if (meses === 'personalizado') {
+        fechaInicio = document.getElementById('dgDesde')?.value;
+        fechaFin    = document.getElementById('dgHasta')?.value;
+        if (!fechaInicio || !fechaFin) return;
+    } else {
+        const hoy = new Date();
+        fechaFin   = hoy.toISOString().split('T')[0];
+        const desde = new Date(hoy);
+        desde.setMonth(desde.getMonth() - parseInt(meses));
+        fechaInicio = desde.toISOString().split('T')[0];
+    }
+
+    // Fetch colectas para datos de usuarios
+    const { data: colectas } = await insforge.database
+        .from('colectas')
+        .select('fecha, usuario_nombre, datos_json')
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin)
+        .order('fecha', { ascending: true });
+
+    // Fetch registros_salas para datos de salas
+    const { data: registros } = await insforge.database
+        .from('registros_salas')
+        .select('fecha, total_colectado, total_premios, sala_id, salas(nombre)')
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin)
+        .order('fecha', { ascending: true });
+
+    renderizarTarjetasDGUsuarios(colectas || []);
+    renderizarChartDGUsuarios(colectas || []);
+    renderizarTarjetasDGSalas(registros || []);
+    renderizarChartDGSalas(registros || []);
+    renderizarChartLineGlobalUsuarios(colectas || []);
+    renderizarChartLineGlobalSalas(registros || []);
+}
+
+function renderizarTarjetasDGUsuarios(colectas) {
+    const PALETA = [
+        { bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.5)', txt: '#c084fc' },
+        { bg: 'rgba(6,182,212,0.15)',  border: 'rgba(6,182,212,0.5)',  txt: '#22d3ee' },
+        { bg: 'rgba(34,197,94,0.15)',  border: 'rgba(34,197,94,0.5)',  txt: '#4ade80' },
+        { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.5)',  txt: '#f87171' },
+        { bg: 'rgba(251,146,60,0.15)', border: 'rgba(251,146,60,0.5)', txt: '#fb923c' },
+    ];
+
+    // Acumular totales por usuario
+    const totales = {};
+    colectas.forEach(c => {
+        const user = c.usuario_nombre || 'Sin usuario';
+        if (!totales[user]) totales[user] = { colectado: 0, premios: 0 };
+        (c.datos_json?.maquinas || []).forEach(m => {
+            totales[user].colectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+            totales[user].premios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+        });
+    });
+
+    const container = document.getElementById('dgTarjetasUsuarios');
+    if (!container) return;
+    const usuarios = Object.keys(totales).sort();
+    if (!usuarios.length) {
+        container.innerHTML = '<div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm" style="grid-column:1/-1;">Sin datos para el período</div>';
+        return;
+    }
+    const totalGlobal = { colectado: 0, premios: 0 };
+    usuarios.forEach(u => { totalGlobal.colectado += totales[u].colectado; totalGlobal.premios += totales[u].premios; });
+    const pctGlobal = totalGlobal.colectado > 0 ? (totalGlobal.premios / totalGlobal.colectado * 100).toFixed(1) : '0.0';
+    const cardGlobal = `<div class="card-glass rounded-xl p-4" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);grid-column:1/-1;">
+        <div class="text-xs font-bold mb-3 text-white">🌐 Global Usuarios</div>
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div><div class="text-slate-400 text-xs mb-1">Total Colectado</div><div class="font-bold text-green-400 text-sm">$${totalGlobal.colectado.toLocaleString('es-PA',{minimumFractionDigits:2})}</div></div>
+            <div><div class="text-slate-400 text-xs mb-1">Total Premios</div><div class="font-bold text-red-400 text-sm">$${totalGlobal.premios.toLocaleString('es-PA',{minimumFractionDigits:2})}</div></div>
+            <div><div class="text-slate-400 text-xs mb-1">% Premios</div><div class="font-bold text-yellow-400 text-sm">${pctGlobal}%</div></div>
+        </div>
+    </div>`;
+
+    container.innerHTML = cardGlobal + usuarios.map((u, i) => {
+        const p = PALETA[i % PALETA.length];
+        const t = totales[u];
+        const pctPremios = t.colectado > 0 ? (t.premios / t.colectado * 100).toFixed(1) : '0.0';
+        return `<div class="card-glass rounded-xl p-4" style="background:${p.bg};border:1px solid ${p.border};">
+            <div class="text-xs font-bold mb-3" style="color:${p.txt};">👤 ${u}</div>
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Colectado</span>
+                    <span class="font-bold text-green-400">$${t.colectado.toLocaleString('es-PA',{minimumFractionDigits:2})}</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Premios</span>
+                    <span class="font-bold text-red-400">$${t.premios.toLocaleString('es-PA',{minimumFractionDigits:2})}</span>
+                </div>
+                <div class="border-t border-slate-600 pt-1.5 flex justify-between items-center text-xs">
+                    <span class="text-slate-300 font-semibold">% Premios</span>
+                    <span class="font-bold text-yellow-400">${pctPremios}%</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderizarChartDGUsuarios(colectas) {
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const PALETA = [
+        { col: 'rgba(168,85,247,0.82)', colB: 'rgba(168,85,247,1)', prem: 'rgba(236,72,153,0.82)', premB: 'rgba(236,72,153,1)' },
+        { col: 'rgba(6,182,212,0.82)',  colB: 'rgba(6,182,212,1)',  prem: 'rgba(249,115,22,0.82)', premB: 'rgba(249,115,22,1)' },
+        { col: 'rgba(34,197,94,0.82)',  colB: 'rgba(34,197,94,1)',  prem: 'rgba(234,179,8,0.82)',  premB: 'rgba(234,179,8,1)'  },
+        { col: 'rgba(239,68,68,0.82)',  colB: 'rgba(239,68,68,1)',  prem: 'rgba(251,146,60,0.82)', premB: 'rgba(251,146,60,1)' },
+        { col: 'rgba(99,102,241,0.82)', colB: 'rgba(99,102,241,1)', prem: 'rgba(20,184,166,0.82)', premB: 'rgba(20,184,166,1)' },
+    ];
+
+    const usuariosOrden = [];
+    const usuariosVisto = new Set();
+    const mesesSet = new Set();
+    colectas.forEach(c => {
+        const user = c.usuario_nombre || 'Sin usuario';
+        const mes  = (c.fecha || '').substring(0, 7);
+        if (!usuariosVisto.has(user)) { usuariosVisto.add(user); usuariosOrden.push(user); }
+        if (mes) mesesSet.add(mes);
+    });
+
+    const meses  = Array.from(mesesSet).sort();
+    const labels = meses.map(k => { const [y, m] = k.split('-'); return MESES[parseInt(m) - 1] + '\n' + y; });
+
+    const dataMapa = {};
+    usuariosOrden.forEach(u => {
+        dataMapa[u] = {};
+        meses.forEach(m => { dataMapa[u][m] = { colectado: 0, premios: 0 }; });
+    });
+    colectas.forEach(c => {
+        const user = c.usuario_nombre || 'Sin usuario';
+        const mes  = (c.fecha || '').substring(0, 7);
+        if (!mes || !dataMapa[user]?.[mes]) return;
+        (c.datos_json?.maquinas || []).forEach(maq => {
+            dataMapa[user][mes].colectado += (parseInt(maq.pantalla?.entradaActual) || 0) - (parseInt(maq.pantalla?.entradaAnterior) || 0);
+            dataMapa[user][mes].premios   += (parseInt(maq.pantalla?.salidaActual)  || 0) - (parseInt(maq.pantalla?.salidaAnterior)  || 0);
+        });
+    });
+
+    const datasets = [];
+    usuariosOrden.forEach((user, i) => {
+        const c = PALETA[i % PALETA.length];
+        datasets.push({ label: user + ' · Colectado', data: meses.map(m => +dataMapa[user][m].colectado.toFixed(2)), backgroundColor: c.col, borderColor: c.colB, borderWidth: 1, borderRadius: 4, borderSkipped: false });
+        datasets.push({ label: user + ' · Premios',   data: meses.map(m => +dataMapa[user][m].premios.toFixed(2)),   backgroundColor: c.prem, borderColor: c.premB, borderWidth: 1, borderRadius: 4, borderSkipped: false });
+    });
+
+    if (dgChartUsuarios) { dgChartUsuarios.destroy(); dgChartUsuarios = null; }
+    const ctx = document.getElementById('dgChartUsuarios');
+    if (!ctx) return;
+    if (!meses.length) {
+        const c2 = ctx.getContext('2d');
+        c2.clearRect(0, 0, ctx.width, ctx.height);
+        c2.fillStyle = '#94a3b8'; c2.font = '14px sans-serif'; c2.textAlign = 'center';
+        c2.fillText('Sin datos para el período', ctx.width / 2, ctx.height / 2);
+        return;
+    }
+    dgChartUsuarios = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { color: '#e2e8f0', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14 } },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.95)', borderColor: 'rgba(168,85,247,0.4)', borderWidth: 1,
+                    titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 10,
+                    callbacks: { label: c => '  ' + c.dataset.label + ': $' + c.raw.toLocaleString('es-PA', { minimumFractionDigits: 2 }) }
                 }
+            },
+            layout: { padding: { top: 28 } },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.08)' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-PA') }, grid: { color: 'rgba(148,163,184,0.08)' }, border: { dash: [3,3] } }
+            }
+        }
+    });
+}
+
+function renderizarTarjetasDGSalas(registros) {
+    const PALETA = [
+        { bg: 'rgba(6,182,212,0.15)',  border: 'rgba(6,182,212,0.5)',  txt: '#22d3ee' },
+        { bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.5)', txt: '#c084fc' },
+        { bg: 'rgba(34,197,94,0.15)',  border: 'rgba(34,197,94,0.5)',  txt: '#4ade80' },
+        { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.5)',  txt: '#f87171' },
+        { bg: 'rgba(251,146,60,0.15)', border: 'rgba(251,146,60,0.5)', txt: '#fb923c' },
+    ];
+
+    const totales = {};
+    const nombres = {};
+    registros.forEach(r => {
+        const id  = r.sala_id;
+        const nom = r.salas?.nombre || ('Sala ' + id);
+        if (!totales[id]) { totales[id] = { colectado: 0, premios: 0 }; nombres[id] = nom; }
+        totales[id].colectado += parseFloat(r.total_colectado) || 0;
+        totales[id].premios   += parseFloat(r.total_premios)   || 0;
+    });
+
+    const container = document.getElementById('dgTarjetasSalas');
+    if (!container) return;
+    const ids = Object.keys(totales);
+    if (!ids.length) {
+        container.innerHTML = '<div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm" style="grid-column:1/-1;">Sin datos para el período</div>';
+        return;
+    }
+    const totalGlobal = { colectado: 0, premios: 0 };
+    ids.forEach(id => { totalGlobal.colectado += totales[id].colectado; totalGlobal.premios += totales[id].premios; });
+    const pctGlobal = totalGlobal.colectado > 0 ? (totalGlobal.premios / totalGlobal.colectado * 100).toFixed(1) : '0.0';
+    const cardGlobal = `<div class="card-glass rounded-xl p-4" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.25);grid-column:1/-1;">
+        <div class="text-xs font-bold mb-3 text-white">🌐 Global Salas</div>
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div><div class="text-slate-400 text-xs mb-1">Total Colectado</div><div class="font-bold text-green-400 text-sm">$${totalGlobal.colectado.toLocaleString('es-PA',{minimumFractionDigits:2})}</div></div>
+            <div><div class="text-slate-400 text-xs mb-1">Total Premios</div><div class="font-bold text-red-400 text-sm">$${totalGlobal.premios.toLocaleString('es-PA',{minimumFractionDigits:2})}</div></div>
+            <div><div class="text-slate-400 text-xs mb-1">% Premios</div><div class="font-bold text-yellow-400 text-sm">${pctGlobal}%</div></div>
+        </div>
+    </div>`;
+
+    container.innerHTML = cardGlobal + ids.map((id, i) => {
+        const p = PALETA[i % PALETA.length];
+        const t = totales[id];
+        const pctPremios = t.colectado > 0 ? (t.premios / t.colectado * 100).toFixed(1) : '0.0';
+        return `<div class="card-glass rounded-xl p-4" style="background:${p.bg};border:1px solid ${p.border};">
+            <div class="text-xs font-bold mb-3" style="color:${p.txt};">🏪 ${nombres[id]}</div>
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Colectado</span>
+                    <span class="font-bold text-green-400">$${t.colectado.toLocaleString('es-PA',{minimumFractionDigits:2})}</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Premios</span>
+                    <span class="font-bold text-red-400">$${t.premios.toLocaleString('es-PA',{minimumFractionDigits:2})}</span>
+                </div>
+                <div class="border-t border-slate-600 pt-1.5 flex justify-between items-center text-xs">
+                    <span class="text-slate-300 font-semibold">% Premios</span>
+                    <span class="font-bold text-yellow-400">${pctPremios}%</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderizarChartDGSalas(registros) {
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const PALETA = [
+        { col: 'rgba(6,182,212,0.82)',  colB: 'rgba(6,182,212,1)',  prem: 'rgba(249,115,22,0.82)', premB: 'rgba(249,115,22,1)' },
+        { col: 'rgba(168,85,247,0.82)', colB: 'rgba(168,85,247,1)', prem: 'rgba(236,72,153,0.82)', premB: 'rgba(236,72,153,1)' },
+        { col: 'rgba(34,197,94,0.82)',  colB: 'rgba(34,197,94,1)',  prem: 'rgba(234,179,8,0.82)',  premB: 'rgba(234,179,8,1)'  },
+        { col: 'rgba(239,68,68,0.82)',  colB: 'rgba(239,68,68,1)',  prem: 'rgba(251,146,60,0.82)', premB: 'rgba(251,146,60,1)' },
+    ];
+
+    const salasOrden = [];
+    const salasVisto = new Set();
+    const mesesSet = new Set();
+    registros.forEach(r => {
+        const id  = r.sala_id;
+        const nom = r.salas?.nombre || ('Sala ' + id);
+        const mes = r.fecha.substring(0, 7);
+        if (!salasVisto.has(id)) { salasVisto.add(id); salasOrden.push({ id, nombre: nom }); }
+        mesesSet.add(mes);
+    });
+
+    const meses  = Array.from(mesesSet).sort();
+    const labels = meses.map(k => { const [y, m] = k.split('-'); return MESES[parseInt(m) - 1] + '\n' + y; });
+
+    const dataMapa = {};
+    salasOrden.forEach(s => {
+        dataMapa[s.id] = {};
+        meses.forEach(m => { dataMapa[s.id][m] = { colectado: 0, premios: 0 }; });
+    });
+    registros.forEach(r => {
+        const mes = r.fecha.substring(0, 7);
+        if (dataMapa[r.sala_id]?.[mes]) {
+            dataMapa[r.sala_id][mes].colectado += parseFloat(r.total_colectado) || 0;
+            dataMapa[r.sala_id][mes].premios   += parseFloat(r.total_premios)   || 0;
+        }
+    });
+
+    const datasets = [];
+    salasOrden.forEach((sala, i) => {
+        const c = PALETA[i % PALETA.length];
+        datasets.push({ label: sala.nombre + ' · Colectado', data: meses.map(m => +dataMapa[sala.id][m].colectado.toFixed(2)), backgroundColor: c.col, borderColor: c.colB, borderWidth: 1, borderRadius: 4, borderSkipped: false });
+        datasets.push({ label: sala.nombre + ' · Premios',   data: meses.map(m => +dataMapa[sala.id][m].premios.toFixed(2)),   backgroundColor: c.prem, borderColor: c.premB, borderWidth: 1, borderRadius: 4, borderSkipped: false });
+    });
+
+    if (dgChartSalas) { dgChartSalas.destroy(); dgChartSalas = null; }
+    const ctx = document.getElementById('dgChartSalas');
+    if (!ctx) return;
+    if (!meses.length) {
+        const c2 = ctx.getContext('2d');
+        c2.clearRect(0, 0, ctx.width, ctx.height);
+        c2.fillStyle = '#94a3b8'; c2.font = '14px sans-serif'; c2.textAlign = 'center';
+        c2.fillText('Sin datos para el período', ctx.width / 2, ctx.height / 2);
+        return;
+    }
+    dgChartSalas = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { color: '#e2e8f0', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14 } },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.95)', borderColor: 'rgba(6,182,212,0.4)', borderWidth: 1,
+                    titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 10,
+                    callbacks: { label: c => '  ' + c.dataset.label + ': $' + c.raw.toLocaleString('es-PA', { minimumFractionDigits: 2 }) }
+                }
+            },
+            layout: { padding: { top: 28 } },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.08)' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-PA') }, grid: { color: 'rgba(148,163,184,0.08)' }, border: { dash: [3,3] } }
+            }
+        }
+    });
+}
+
+function renderizarChartLineGlobalUsuarios(colectas) {
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const mesesSet = new Set();
+    colectas.forEach(c => { const m = (c.fecha || '').substring(0, 7); if (m) mesesSet.add(m); });
+    const meses  = Array.from(mesesSet).sort();
+    const labels = meses.map(k => { const [y, m] = k.split('-'); return MESES[parseInt(m) - 1] + ' ' + y; });
+
+    const totCol  = meses.map(() => 0);
+    const totPrem = meses.map(() => 0);
+    colectas.forEach(c => {
+        const idx = meses.indexOf((c.fecha || '').substring(0, 7));
+        if (idx < 0) return;
+        (c.datos_json?.maquinas || []).forEach(m => {
+            totCol[idx]  += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+            totPrem[idx] += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+        });
+    });
+
+    if (dgChartLineUsuarios) { dgChartLineUsuarios.destroy(); dgChartLineUsuarios = null; }
+    const ctx = document.getElementById('dgChartLineUsuarios');
+    if (!ctx) return;
+
+    dgChartLineUsuarios = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Colectado', data: totCol.map(v => +v.toFixed(2)),
+                    borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.12)',
+                    borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                    tension: 0.35, fill: true,
+                },
+                {
+                    label: 'Premios', data: totPrem.map(v => +v.toFixed(2)),
+                    borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.10)',
+                    borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                    tension: 0.35, fill: true,
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { color: '#e2e8f0', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14 } },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.95)', borderColor: 'rgba(74,222,128,0.3)', borderWidth: 1,
+                    titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 10,
+                    callbacks: { label: c => '  ' + c.dataset.label + ': $' + c.raw.toLocaleString('es-PA', { minimumFractionDigits: 2 }) }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.06)' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-PA') }, grid: { color: 'rgba(148,163,184,0.08)' }, border: { dash: [3,3] } }
+            }
+        }
+    });
+}
+
+function renderizarChartLineGlobalSalas(registros) {
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const mesesSet = new Set();
+    registros.forEach(r => { const m = r.fecha.substring(0, 7); if (m) mesesSet.add(m); });
+    const meses  = Array.from(mesesSet).sort();
+    const labels = meses.map(k => { const [y, m] = k.split('-'); return MESES[parseInt(m) - 1] + ' ' + y; });
+
+    const totCol  = meses.map(() => 0);
+    const totPrem = meses.map(() => 0);
+    registros.forEach(r => {
+        const idx = meses.indexOf(r.fecha.substring(0, 7));
+        if (idx < 0) return;
+        totCol[idx]  += parseFloat(r.total_colectado) || 0;
+        totPrem[idx] += parseFloat(r.total_premios)   || 0;
+    });
+
+    if (dgChartLineSalas) { dgChartLineSalas.destroy(); dgChartLineSalas = null; }
+    const ctx = document.getElementById('dgChartLineSalas');
+    if (!ctx) return;
+
+    dgChartLineSalas = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Colectado', data: totCol.map(v => +v.toFixed(2)),
+                    borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.10)',
+                    borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                    tension: 0.35, fill: true,
+                },
+                {
+                    label: 'Premios', data: totPrem.map(v => +v.toFixed(2)),
+                    borderColor: '#fb923c', backgroundColor: 'rgba(251,146,60,0.08)',
+                    borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                    tension: 0.35, fill: true,
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { color: '#e2e8f0', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14 } },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.95)', borderColor: 'rgba(34,211,238,0.3)', borderWidth: 1,
+                    titleColor: '#e2e8f0', bodyColor: '#94a3b8', padding: 10,
+                    callbacks: { label: c => '  ' + c.dataset.label + ': $' + c.raw.toLocaleString('es-PA', { minimumFractionDigits: 2 }) }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.06)' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => '$' + v.toLocaleString('es-PA') }, grid: { color: 'rgba(148,163,184,0.08)' }, border: { dash: [3,3] } }
             }
         }
     });
@@ -3516,6 +4271,10 @@ let slChartMensual = null;
 let adChartUsuarios = null;
 let adChartComparativaGlobal = null;
 let _comparativaGlobalCache = [];
+let dgChartUsuarios = null;
+let dgChartSalas = null;
+let dgChartLineUsuarios = null;
+let dgChartLineSalas = null;
 let _gastosCache = [];
 
 async function abrirModalRefinanciar(id) {
@@ -3645,6 +4404,7 @@ function iniciarRealtime() {
             .on('*', () => {
                 if (!document.getElementById('seccionDashboard').classList.contains('hidden')) cargarDashboardAdmin();
                 if (!document.getElementById('seccionColectas').classList.contains('hidden')) cargarColectasAdmin();
+                if (!document.getElementById('seccionDashboardGlobal').classList.contains('hidden')) cargarDashboardGlobal();
                 showNotification('📡 Datos actualizados', 'info');
             })
             .subscribe();
@@ -3675,12 +4435,13 @@ function iniciarPolling() {
 
 function recargarPaginaActual() {
     const mapa = {
-        'seccionUsuarios':  () => cargarUsuarios(),
-        'seccionDashboard': () => cargarDashboardAdmin(),
-        'seccionColectas':  () => cargarColectasAdmin(),
-        'seccionPerdidas':  () => cargarPerdidas(),
-        'seccionPrestamos': () => cargarPrestamos(),
-        'seccionSalas':     () => cargarSalas()
+        'seccionUsuarios':       () => cargarUsuarios(),
+        'seccionDashboard':      () => cargarDashboardAdmin(),
+        'seccionColectas':       () => cargarColectasAdmin(),
+        'seccionPerdidas':       () => cargarPerdidas(),
+        'seccionPrestamos':      () => cargarPrestamos(),
+        'seccionSalas':          () => cargarSalas(),
+        'seccionDashboardGlobal':() => cargarDashboardGlobal()
     };
     for (const [id, fn] of Object.entries(mapa)) {
         if (!document.getElementById(id).classList.contains('hidden')) {
