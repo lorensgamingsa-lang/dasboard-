@@ -368,30 +368,94 @@
             </div>
         </div>
 
-        <!-- Comparativa + Máquinas Rentables -->
+        <!-- Comparativa + Evolución por Usuario -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div class="card-glass rounded-xl p-4">
-                <h3 class="text-sm font-bold text-white mb-3">📊 Comparativa Mensual</h3>
+                <h3 class="text-sm font-bold text-white mb-3">📊 Comparativa Mensual de ganancia global</h3>
                 <div style="position: relative; height: 250px;">
                     <canvas id="adChartComparativa"></canvas>
                 </div>
             </div>
             <div class="card-glass rounded-xl p-4">
-                <h3 class="text-sm font-bold text-white mb-3">🎰 Máquinas Más Rentables</h3>
-                <div class="overflow-y-auto" style="max-height: 250px;">
-                    <table class="w-full text-sm text-white">
-                        <thead>
-                            <tr class="border-b border-slate-600 text-xs text-purple-300">
-                                <th class="px-2 py-2 text-left">#</th>
-                                <th class="px-2 py-2 text-left">JUEGO</th>
-                                <th class="px-2 py-2 text-right">GANANCIA</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adTablaMaquinas">
-                            <tr><td colspan="3" class="px-2 py-8 text-center text-slate-400">Sin datos</td></tr>
-                        </tbody>
-                    </table>
+                <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-white">👥 Evolución de ganancia Mensual por Usuario</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Colectado por usuario cada mes</p>
+                    </div>
+                    <div class="flex flex-wrap items-end gap-2">
+                        <div>
+                            <label class="text-xs text-purple-300 block mb-1">Período</label>
+                            <select id="adChartUserMeses" onchange="cambiarPeriodoGraficoUsuarios()"
+                                    class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                                <option value="3">3 meses</option>
+                                <option value="6">6 meses</option>
+                                <option value="12" selected>12 meses</option>
+                                <option value="24">24 meses</option>
+                                <option value="personalizado">📅 Personalizado</option>
+                            </select>
+                        </div>
+                        <div id="adChartUserFechasCustom" class="hidden flex gap-1">
+                            <div>
+                                <label class="text-xs text-purple-300 block mb-1">Desde</label>
+                                <input type="date" id="adChartUserDesde" onchange="actualizarGraficoUsuarios()"
+                                       class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs text-purple-300 block mb-1">Hasta</label>
+                                <input type="date" id="adChartUserHasta" onchange="actualizarGraficoUsuarios()"
+                                       class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <div style="position:relative;height:250px;">
+                    <canvas id="adChartUsuarios"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparativa Mensual de entrada y salida -->
+        <div class="card-glass rounded-xl p-4 mb-4">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-white">📅 Comparativa Mensual de entrada y salida</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Total colectado y premios de máquinas por mes</p>
+                </div>
+                <div class="flex flex-wrap items-end gap-2">
+                    <div>
+                        <label class="text-xs text-purple-300 block mb-1">Período</label>
+                        <select id="adCMGFiltroPeriodo" onchange="cambiarPeriodoComparativaGlobal()"
+                                class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                            <option value="3">3 meses</option>
+                            <option value="6">6 meses</option>
+                            <option value="12" selected>12 meses</option>
+                            <option value="24">24 meses</option>
+                            <option value="personalizado">📅 Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="adCMGFechasCustom" class="hidden flex gap-1">
+                        <div>
+                            <label class="text-xs text-purple-300 block mb-1">Desde</label>
+                            <input type="date" id="adCMGDesde" onchange="cargarComparativaGlobal()"
+                                   class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs text-purple-300 block mb-1">Hasta</label>
+                            <input type="date" id="adCMGHasta" onchange="cargarComparativaGlobal()"
+                                   class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-purple-300 block mb-1">Usuario</label>
+                        <select id="adCMGFiltroUsuario" onchange="filtrarComparativaGlobal()"
+                                class="bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div style="position:relative;height:300px;">
+                <canvas id="adChartComparativaGlobal"></canvas>
             </div>
         </div>
 
@@ -836,6 +900,31 @@
                                 class="bg-slate-700 border border-orange-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
                             <option value="todas">Todas</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-orange-300 block mb-1">Período</label>
+                        <select id="slGastosFiltroPeriodo" onchange="cambiarFiltroPeriodoGastos()"
+                                class="bg-slate-700 border border-orange-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                            <option value="hoy">Hoy</option>
+                            <option value="ayer">Ayer</option>
+                            <option value="semana">Última semana</option>
+                            <option value="mes" selected>Último mes</option>
+                            <option value="30dias">Últimos 30 días</option>
+                            <option value="90dias">Últimos 90 días</option>
+                            <option value="personalizado">📅 Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="slGastosFechasCustom" class="hidden flex gap-2">
+                        <div>
+                            <label class="text-xs text-orange-300 block mb-1">Desde</label>
+                            <input type="date" id="slGastosFechaDesde" onchange="cargarGastosSalasTabla()"
+                                   class="bg-slate-700 border border-orange-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs text-orange-300 block mb-1">Hasta</label>
+                            <input type="date" id="slGastosFechaHasta" onchange="cargarGastosSalasTabla()"
+                                   class="bg-slate-700 border border-orange-500 border-opacity-30 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1317,6 +1406,8 @@ async function loginAdmin() {
             .single();
 
         if (error || !data) throw new Error('Usuario o contraseña incorrectos');
+        // Colectores van directo a la página de salas
+        if (data.rol === 'colector') { window.location.href = 'salas.html'; return; }
         if (data.rol !== 'admin') throw new Error('Acceso denegado: solo administradores');
 
         adminActual = {
@@ -1726,7 +1817,8 @@ async function cargarDashboardAdmin() {
         crearGraficaRanking(listaColectas);
         crearGraficaPerdidas(listaColectas, listaMovimientos);
         crearGraficaComparativa(listaColectas, fechaInicio, fechaFin);
-        crearTablaMaquinas(listaColectas);
+        actualizarGraficoUsuarios(listaColectas);
+        crearTablaComparativaMensual(listaColectas);
         crearTablaRentabilidadChapasAdmin(listaColectas);
 
     } catch (e) {
@@ -1992,42 +2084,419 @@ function crearGraficaComparativa(colectas, fechaInicio, fechaFin) {
     });
 }
 
-function crearTablaMaquinas(colectas) {
-    const tbody = document.getElementById('adTablaMaquinas');
-    if (!tbody) return;
+// ========== EVOLUCIÓN MENSUAL POR USUARIO ==========
 
-    // Aggregate machines across all colectas
-    const mapa = {};
+function cambiarPeriodoGraficoUsuarios() {
+    const val = document.getElementById('adChartUserMeses')?.value;
+    const custom = document.getElementById('adChartUserFechasCustom');
+    if (val === 'personalizado') {
+        custom?.classList.remove('hidden');
+    } else {
+        custom?.classList.add('hidden');
+        if (adChartUsuarios) {
+            // Re-render with current cached data using new period
+            actualizarGraficoUsuarios();
+        }
+    }
+}
+
+async function actualizarGraficoUsuarios(colectasParam) {
+    const ctx = document.getElementById('adChartUsuarios');
+    if (!ctx) return;
+
+    let colectas = colectasParam;
+
+    // If no data passed, fetch fresh based on period filter
+    if (!colectas) {
+        const meses = document.getElementById('adChartUserMeses')?.value || '12';
+        let fechaInicio, fechaFin;
+
+        if (meses === 'personalizado') {
+            fechaInicio = document.getElementById('adChartUserDesde')?.value;
+            fechaFin    = document.getElementById('adChartUserHasta')?.value;
+            if (!fechaInicio || !fechaFin) return;
+        } else {
+            const hoy = new Date();
+            fechaFin   = hoy.toISOString().split('T')[0];
+            const desde = new Date(hoy);
+            desde.setMonth(desde.getMonth() - parseInt(meses));
+            fechaInicio = desde.toISOString().split('T')[0];
+        }
+
+        const { data } = await insforge.database
+            .from('colectas')
+            .select('fecha, usuario_nombre, datos_json')
+            .gte('fecha', fechaInicio)
+            .lte('fecha', fechaFin)
+            .order('fecha', { ascending: true });
+        colectas = data || [];
+    }
+
+    // Apply current period filter to passed colectas (from cargarDashboardAdmin)
+    const meses = document.getElementById('adChartUserMeses')?.value || '12';
+    if (colectasParam && meses !== 'personalizado') {
+        const hoy = new Date();
+        const desde = new Date(hoy);
+        desde.setMonth(desde.getMonth() - parseInt(meses));
+        const fechaCorte = desde.toISOString().split('T')[0];
+        colectas = colectasParam.filter(c => c.fecha >= fechaCorte);
+    } else if (colectasParam && meses === 'personalizado') {
+        const fi = document.getElementById('adChartUserDesde')?.value;
+        const ff = document.getElementById('adChartUserHasta')?.value;
+        if (fi && ff) colectas = colectasParam.filter(c => c.fecha >= fi && c.fecha <= ff);
+    }
+
+    renderizarGraficoUsuarios(colectas);
+}
+
+function renderizarGraficoUsuarios(colectas) {
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const COLORES = [
+        'rgba(168,85,247,0.82)',
+        'rgba(6,182,212,0.82)',
+        'rgba(34,197,94,0.82)',
+        'rgba(236,72,153,0.82)',
+        'rgba(249,115,22,0.82)',
+        'rgba(234,179,8,0.82)',
+        'rgba(239,68,68,0.82)',
+        'rgba(99,102,241,0.82)',
+    ];
+    const COLORES_B = [
+        'rgba(168,85,247,1)',
+        'rgba(6,182,212,1)',
+        'rgba(34,197,94,1)',
+        'rgba(236,72,153,1)',
+        'rgba(249,115,22,1)',
+        'rgba(234,179,8,1)',
+        'rgba(239,68,68,1)',
+        'rgba(99,102,241,1)',
+    ];
+
+    // Collect unique users and months
+    const usuariosOrden = [];
+    const usuariosVisto = new Set();
+    const mesesSet = new Set();
+
     colectas.forEach(c => {
-        const maquinas = c.datos_json?.maquinas || [];
-        maquinas.forEach(m => {
-            const juego = m.juego || 'Sin juego';
-            const entrada = (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-            const salida = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
-            const ganancia = entrada - salida;
-            if (!mapa[juego]) mapa[juego] = { ganancia: 0, cantidad: 0 };
-            mapa[juego].ganancia += ganancia;
-            mapa[juego].cantidad += 1;
-        });
+        const user = c.usuario_nombre || 'Sin usuario';
+        const mes  = (c.fecha || '').substring(0, 7);
+        if (!usuariosVisto.has(user)) { usuariosVisto.add(user); usuariosOrden.push(user); }
+        if (mes) mesesSet.add(mes);
     });
 
-    const ranking = Object.entries(mapa)
-        .map(([juego, data]) => ({ juego, ganancia: data.ganancia, cantidad: data.cantidad }))
-        .sort((a, b) => b.ganancia - a.ganancia)
-        .slice(0, 20);
+    const meses  = Array.from(mesesSet).sort();
+    const labels = meses.map(k => { const [y, m] = k.split('-'); return MESES[parseInt(m) - 1] + '\n' + y; });
 
-    if (ranking.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="px-2 py-8 text-center text-slate-400">Sin datos de máquinas</td></tr>';
+    // Aggregate ganancia per user per month
+    const dataMapa = {};
+    usuariosOrden.forEach(u => {
+        dataMapa[u] = {};
+        meses.forEach(m => { dataMapa[u][m] = 0; });
+    });
+    colectas.forEach(c => {
+        const user = c.usuario_nombre || 'Sin usuario';
+        const mes  = (c.fecha || '').substring(0, 7);
+        const ganancia = parseFloat(c.datos_json?.totales?.gananciaCU) || 0;
+        if (dataMapa[user] && mes) dataMapa[user][mes] += ganancia;
+    });
+
+    const datasets = usuariosOrden.map((user, i) => ({
+        label: user,
+        data: meses.map(m => +dataMapa[user][m].toFixed(2)),
+        backgroundColor: COLORES[i % COLORES.length],
+        borderColor: COLORES_B[i % COLORES_B.length],
+        borderWidth: 1,
+        borderRadius: 4,
+        borderSkipped: false,
+    }));
+
+    if (adChartUsuarios) { adChartUsuarios.destroy(); adChartUsuarios = null; }
+    const ctx = document.getElementById('adChartUsuarios');
+    if (!ctx) return;
+
+    if (!colectas.length || !meses.length) {
+        const c2 = ctx.getContext('2d');
+        c2.clearRect(0, 0, ctx.width, ctx.height);
+        c2.fillStyle = '#94a3b8';
+        c2.font = '14px sans-serif';
+        c2.textAlign = 'center';
+        c2.fillText('Sin datos para el período seleccionado', ctx.width / 2, ctx.height / 2);
         return;
     }
 
-    tbody.innerHTML = ranking.map((m, i) => `
-        <tr class="border-b border-slate-700 hover:bg-slate-700 transition-colors">
-            <td class="px-2 py-2 font-bold text-purple-400">${i + 1}</td>
-            <td class="px-2 py-2">${m.juego} <span class="text-slate-400 text-xs">(${m.cantidad})</span></td>
-            <td class="px-2 py-2 text-right font-mono text-green-400">$${m.ganancia.toFixed(2)}</td>
-        </tr>
-    `).join('');
+    adChartUsuarios = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { color: '#e2e8f0', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.95)',
+                    borderColor: 'rgba(168,85,247,0.4)',
+                    borderWidth: 1,
+                    titleColor: '#e2e8f0',
+                    bodyColor: '#94a3b8',
+                    padding: 10,
+                    callbacks: {
+                        label: c => '  ' + c.dataset.label + ': $' + c.raw.toLocaleString('es-PA', { minimumFractionDigits: 2 })
+                    }
+                }
+            },
+            layout: { padding: { top: 28 } },
+            scales: {
+                x: {
+                    ticks: { color: '#94a3b8', font: { size: 10 } },
+                    grid: { color: 'rgba(148,163,184,0.08)' }
+                },
+                y: {
+                    ticks: {
+                        color: '#94a3b8',
+                        font: { size: 10 },
+                        callback: v => '$' + v.toLocaleString('es-PA')
+                    },
+                    grid: { color: 'rgba(148,163,184,0.08)' }
+                }
+            },
+            animation: {
+                onComplete: function() {
+                    const chart = this;
+                    const ctx2  = chart.ctx;
+                    ctx2.save();
+                    ctx2.font = 'bold 9px sans-serif';
+                    ctx2.textAlign = 'center';
+                    ctx2.textBaseline = 'bottom';
+                    chart.data.datasets.forEach((ds, di) => {
+                        const meta = chart.getDatasetMeta(di);
+                        meta.data.forEach((bar, i) => {
+                            const val = ds.data[i];
+                            if (!val) return;
+                            const lbl = '$' + val.toLocaleString('es-PA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            ctx2.fillStyle = 'rgba(255,255,255,0.85)';
+                            ctx2.fillText(lbl, bar.x, bar.y - 3);
+                        });
+                    });
+                    ctx2.restore();
+                }
+            }
+        }
+    });
+}
+
+// ========== COMPARATIVA MENSUAL GLOBAL ==========
+
+function crearTablaComparativaMensual(colectas) {
+    // Cache full data and populate user filter
+    _comparativaGlobalCache = colectas || [];
+
+    const select = document.getElementById('adCMGFiltroUsuario');
+    if (select) {
+        const valorActual = select.value;
+        const usuarios = [...new Set(colectas.map(c => c.usuario_nombre).filter(Boolean))].sort();
+        select.innerHTML = '<option value="todos">Todos</option>' +
+            usuarios.map(u => `<option value="${u}"${u === valorActual ? ' selected' : ''}>${u}</option>`).join('');
+    }
+
+    filtrarComparativaGlobal();
+}
+
+function cambiarPeriodoComparativaGlobal() {
+    const val = document.getElementById('adCMGFiltroPeriodo')?.value;
+    const custom = document.getElementById('adCMGFechasCustom');
+    if (val === 'personalizado') {
+        custom?.classList.remove('hidden');
+    } else {
+        custom?.classList.add('hidden');
+        cargarComparativaGlobal();
+    }
+}
+
+async function cargarComparativaGlobal() {
+    const meses = document.getElementById('adCMGFiltroPeriodo')?.value || '12';
+    let fechaInicio, fechaFin;
+
+    if (meses === 'personalizado') {
+        fechaInicio = document.getElementById('adCMGDesde')?.value;
+        fechaFin    = document.getElementById('adCMGHasta')?.value;
+        if (!fechaInicio || !fechaFin) return;
+    } else {
+        const hoy = new Date();
+        fechaFin   = hoy.toISOString().split('T')[0];
+        const desde = new Date(hoy);
+        desde.setMonth(desde.getMonth() - parseInt(meses));
+        fechaInicio = desde.toISOString().split('T')[0];
+    }
+
+    const { data } = await insforge.database
+        .from('colectas')
+        .select('fecha, usuario_nombre, datos_json')
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin)
+        .order('fecha', { ascending: true });
+
+    _comparativaGlobalCache = data || [];
+
+    // Re-poblar select de usuario preservando selección actual
+    const select = document.getElementById('adCMGFiltroUsuario');
+    if (select) {
+        const valorActual = select.value;
+        const usuarios = [...new Set(_comparativaGlobalCache.map(c => c.usuario_nombre).filter(Boolean))].sort();
+        select.innerHTML = '<option value="todos">Todos</option>' +
+            usuarios.map(u => `<option value="${u}"${u === valorActual ? ' selected' : ''}>${u}</option>`).join('');
+    }
+
+    filtrarComparativaGlobal();
+}
+
+function filtrarComparativaGlobal() {
+    const usuario = document.getElementById('adCMGFiltroUsuario')?.value || 'todos';
+    const datos = usuario === 'todos'
+        ? _comparativaGlobalCache
+        : _comparativaGlobalCache.filter(c => c.usuario_nombre === usuario);
+    renderizarComparativaGlobal(datos);
+}
+
+function renderizarComparativaGlobal(colectas) {
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    // Paleta: cada usuario tiene un par de colores (colectado / premios)
+    const PALETA = [
+        { col: 'rgba(168,85,247,0.82)',  colB: 'rgba(168,85,247,1)',  prem: 'rgba(236,72,153,0.82)',  premB: 'rgba(236,72,153,1)'  },
+        { col: 'rgba(6,182,212,0.82)',   colB: 'rgba(6,182,212,1)',   prem: 'rgba(249,115,22,0.82)',  premB: 'rgba(249,115,22,1)'  },
+        { col: 'rgba(34,197,94,0.82)',   colB: 'rgba(34,197,94,1)',   prem: 'rgba(234,179,8,0.82)',   premB: 'rgba(234,179,8,1)'   },
+        { col: 'rgba(239,68,68,0.82)',   colB: 'rgba(239,68,68,1)',   prem: 'rgba(251,146,60,0.82)',  premB: 'rgba(251,146,60,1)'  },
+        { col: 'rgba(99,102,241,0.82)',  colB: 'rgba(99,102,241,1)',  prem: 'rgba(20,184,166,0.82)',  premB: 'rgba(20,184,166,1)'  },
+    ];
+
+    // Usuarios únicos (en orden de aparición) y meses únicos
+    const usuariosOrden = [];
+    const usuariosVisto = new Set();
+    const mesesSet = new Set();
+
+    colectas.forEach(c => {
+        const user = c.usuario_nombre || 'Sin usuario';
+        const mes  = (c.fecha || '').substring(0, 7);
+        if (!usuariosVisto.has(user)) { usuariosVisto.add(user); usuariosOrden.push(user); }
+        if (mes) mesesSet.add(mes);
+    });
+
+    const meses  = Array.from(mesesSet).sort();
+    const labels = meses.map(k => { const [y, m] = k.split('-'); return MESES[parseInt(m) - 1] + '\n' + y; });
+
+    // Mapa: usuario → mes → { colectado, premios }
+    const dataMapa = {};
+    usuariosOrden.forEach(u => {
+        dataMapa[u] = {};
+        meses.forEach(m => { dataMapa[u][m] = { colectado: 0, premios: 0 }; });
+    });
+    colectas.forEach(c => {
+        const user = c.usuario_nombre || 'Sin usuario';
+        const mes  = (c.fecha || '').substring(0, 7);
+        if (!mes || !dataMapa[user]?.[mes]) return;
+        (c.datos_json?.maquinas || []).forEach(m => {
+            dataMapa[user][mes].colectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
+            dataMapa[user][mes].premios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+        });
+    });
+
+    // 2 datasets por usuario (colectado + premios)
+    const datasets = [];
+    usuariosOrden.forEach((user, i) => {
+        const c = PALETA[i % PALETA.length];
+        datasets.push({
+            label: user + ' · Colectado',
+            data: meses.map(m => +dataMapa[user][m].colectado.toFixed(2)),
+            backgroundColor: c.col, borderColor: c.colB,
+            borderWidth: 1, borderRadius: 4, borderSkipped: false,
+        });
+        datasets.push({
+            label: user + ' · Premios',
+            data: meses.map(m => +dataMapa[user][m].premios.toFixed(2)),
+            backgroundColor: c.prem, borderColor: c.premB,
+            borderWidth: 1, borderRadius: 4, borderSkipped: false,
+        });
+    });
+
+    if (adChartComparativaGlobal) { adChartComparativaGlobal.destroy(); adChartComparativaGlobal = null; }
+    const ctx = document.getElementById('adChartComparativaGlobal');
+    if (!ctx) return;
+
+    if (!meses.length) {
+        const c2 = ctx.getContext('2d');
+        c2.clearRect(0, 0, ctx.width, ctx.height);
+        c2.fillStyle = '#94a3b8';
+        c2.font = '14px sans-serif';
+        c2.textAlign = 'center';
+        c2.fillText('Sin datos para el período seleccionado', ctx.width / 2, ctx.height / 2);
+        return;
+    }
+
+    adChartComparativaGlobal = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { color: '#e2e8f0', font: { size: 11 }, padding: 14, boxWidth: 14, boxHeight: 14 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.95)',
+                    borderColor: 'rgba(168,85,247,0.4)',
+                    borderWidth: 1,
+                    titleColor: '#e2e8f0',
+                    bodyColor: '#94a3b8',
+                    padding: 10,
+                    callbacks: {
+                        label: c => '  ' + c.dataset.label + ': $' + c.raw.toLocaleString('es-PA', { minimumFractionDigits: 2 })
+                    }
+                }
+            },
+            layout: { padding: { top: 28 } },
+            scales: {
+                x: {
+                    ticks: { color: '#94a3b8', font: { size: 10 } },
+                    grid: { color: 'rgba(148,163,184,0.08)' }
+                },
+                y: {
+                    ticks: {
+                        color: '#94a3b8',
+                        font: { size: 10 },
+                        callback: v => '$' + v.toLocaleString('es-PA')
+                    },
+                    grid: { color: 'rgba(148,163,184,0.08)' }
+                }
+            },
+            animation: {
+                onComplete: function() {
+                    const chart = this;
+                    const ctx2  = chart.ctx;
+                    ctx2.save();
+                    ctx2.font = 'bold 9px sans-serif';
+                    ctx2.textAlign = 'center';
+                    ctx2.textBaseline = 'bottom';
+                    chart.data.datasets.forEach((ds, di) => {
+                        const meta = chart.getDatasetMeta(di);
+                        meta.data.forEach((bar, i) => {
+                            const val = ds.data[i];
+                            if (!val) return;
+                            const lbl = '$' + val.toLocaleString('es-PA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            ctx2.fillStyle = 'rgba(255,255,255,0.85)';
+                            ctx2.fillText(lbl, bar.x, bar.y - 3);
+                        });
+                    });
+                    ctx2.restore();
+                }
+            }
+        }
+    });
 }
 
 // ========== RENTABILIDAD POR CHAPA ==========
@@ -2986,6 +3455,9 @@ async function eliminarEventoRefinanciamiento(index) {
 let refinanciarPrestamoData = null;
 let detallePrestamoActualId = null;
 let slChartMensual = null;
+let adChartUsuarios = null;
+let adChartComparativaGlobal = null;
+let _comparativaGlobalCache = [];
 let _gastosCache = [];
 
 async function abrirModalRefinanciar(id) {
@@ -3268,7 +3740,8 @@ async function cargarListaSalasSelect(selectId, valorActual = '') {
     const salas = data || [];
     const sel = document.getElementById(selectId);
     if (!sel) return salas;
-    const opExtra = selectId === 'slFiltroSala' ? '<option value="todas">Todas las salas</option>' : '<option value="">Seleccionar sala...</option>';
+    const conTodas = ['slFiltroSala', 'slChartFiltroSala', 'slGastosFiltroSala'].includes(selectId);
+    const opExtra = conTodas ? '<option value="todas">Todas</option>' : '<option value="">Seleccionar sala...</option>';
     sel.innerHTML = opExtra + salas.map(s => `<option value="${s.id}" ${s.id == valorActual ? 'selected' : ''}>${s.nombre}</option>`).join('');
     return salas;
 }
@@ -3466,11 +3939,39 @@ async function cargarRegistrosSalas() {
 }
 
 // --- Solo actualiza tabla de Gastos/Licencias (responde a sus propios filtros) ---
+function obtenerFechasGastos() {
+    const periodo = document.getElementById('slGastosFiltroPeriodo')?.value || 'mes';
+    const hoy = formatDateSQL(new Date());
+    if (periodo === 'personalizado') {
+        return {
+            fechaInicio: document.getElementById('slGastosFechaDesde').value || hoy,
+            fechaFin:    document.getElementById('slGastosFechaHasta').value || hoy
+        };
+    }
+    const d = new Date(), inicio = new Date();
+    if (periodo === 'ayer')   { inicio.setDate(d.getDate()-1); d.setDate(d.getDate()-1); }
+    else if (periodo === 'semana') { inicio.setDate(d.getDate()-6); }
+    else if (periodo === 'mes')    { inicio.setDate(1); }
+    else if (periodo === '30dias') { inicio.setDate(d.getDate()-29); }
+    else if (periodo === '90dias') { inicio.setDate(d.getDate()-89); }
+    return { fechaInicio: formatDateSQL(inicio), fechaFin: formatDateSQL(d) };
+}
+
+function cambiarFiltroPeriodoGastos() {
+    const p = document.getElementById('slGastosFiltroPeriodo').value;
+    const custom = document.getElementById('slGastosFechasCustom');
+    if (p === 'personalizado') {
+        custom.classList.remove('hidden');
+    } else {
+        custom.classList.add('hidden');
+        cargarGastosSalasTabla();
+    }
+}
+
 async function cargarGastosSalasTabla() {
     try {
         const filtroSala = document.getElementById('slGastosFiltroSala')?.value || 'todas';
-        // Usar el mismo período que registros para la carga base
-        const { fechaInicio, fechaFin } = obtenerFechasSalas();
+        const { fechaInicio, fechaFin } = obtenerFechasGastos();
 
         let q = insforge.database
             .from('gastos_salas').select('*, salas(nombre)')
