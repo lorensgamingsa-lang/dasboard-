@@ -1007,7 +1007,7 @@
         <!-- Mapa -->
         <div class="lg:col-span-2">
             <div class="rounded-xl" style="height:520px;overflow:hidden;">
-                <iframe id="mapaFrame" src="mapa.html"
+                <iframe id="mapaFrame"
                     style="height:520px;width:100%;border:none;border-radius:12px;display:block;">
                 </iframe>
             </div>
@@ -1722,11 +1722,12 @@ function logoutAdmin() {
     detenerTimerInactividad();
     adminActual = null;
     cancelarSubscripciones();
-    // Limpiar datos del mapa y reiniciar iframe
-    localStorage.removeItem('ub_puntos');
-    localStorage.removeItem('ub_cmd');
+    // Limpiar marcadores del mapa al cerrar sesión
+    try { localStorage.removeItem('ub_puntos'); } catch(e) {}
     const mapaFrame = document.getElementById('mapaFrame');
-    if (mapaFrame) mapaFrame.src = 'mapa.html';
+    if (mapaFrame && mapaFrame.contentWindow) {
+        mapaFrame.contentWindow.postMessage({ tipo: 'cargarPuntos', puntos: [] }, '*');
+    }
     document.getElementById('adminPanel').classList.add('hidden');
     document.getElementById('loginPage').classList.remove('hidden');
     document.getElementById('loginUsuario').value = '';
@@ -3008,13 +3009,13 @@ async function cargarUbicaciones() {
             ...(resE.data || []).map(e => ({ ...e, _tipo: 'local' }))
         ];
 
-        // Pasar datos al iframe via localStorage (más confiable que postMessage)
-        localStorage.setItem('ub_puntos', JSON.stringify(puntos));
-        localStorage.setItem('ub_cmd', '');  // limpiar comando de centrar previo
-
-        // Recargar el iframe para que lea los datos frescos
+        // Enviar al iframe via postMessage (funciona porque el srcdoc ya está cargado desde el inicio)
         const iframe = document.getElementById('mapaFrame');
-        if (iframe) iframe.src = 'mapa.html?t=' + Date.now();
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ tipo: 'cargarPuntos', puntos }, '*');
+        }
+        // Guardar en localStorage también como respaldo
+        try { localStorage.setItem('ub_puntos', JSON.stringify(puntos)); } catch(e) {}
 
         _renderizarListaUbicaciones(puntos);
 
@@ -5538,6 +5539,67 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 });
+
+// ========== MAPA EMBEBIDO (srcdoc — sin archivo externo) ==========
+(function() {
+    var html = '<!DOCTYPE html><html lang="es"><head>'
+        + '<meta charset="UTF-8">'
+        + '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>'
+        + '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>'
+        + '<style>'
+        + '* { margin:0; padding:0; box-sizing:border-box; }'
+        + 'html,body,#mapa { width:100%; height:100%; }'
+        + '#mapa { background:#0f172a; }'
+        + '.leaflet-popup-content-wrapper { background:rgba(15,23,42,0.97); border:1px solid rgba(168,85,247,0.4); border-radius:12px; color:white; box-shadow:0 8px 32px rgba(0,0,0,0.5); }'
+        + '.leaflet-popup-tip { background:rgba(15,23,42,0.97); }'
+        + '.leaflet-popup-close-button { color:#94a3b8 !important; }'
+        + '.leaflet-container { background:#1e293b; }'
+        + '.leaflet-tile { filter:brightness(0.75) saturate(0.7) hue-rotate(200deg); }'
+        + '.marker-ubi { background:transparent !important; border:none !important; }'
+        + '<\/style>'
+        + '<\/head><body><div id="mapa"><\/div>'
+        + '<script>'
+        + 'var mapa=L.map("mapa",{zoomControl:true,maxZoom:18}).setView([8.9936,-79.5197],10);'
+        + 'L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"\u00a9 OpenStreetMap",maxZoom:18}).addTo(mapa);'
+        + 'var markers=[];'
+        + 'function iconoUbicacion(tipo,sinCoords){'
+        +   'var color=sinCoords?"#475569":(tipo==="sala"?"#a855f7":"#f97316");'
+        +   'var border=sinCoords?"#334155":"white";'
+        +   'var h=\'<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:\'+color+\';border:3px solid \'+border+\';box-shadow:0 2px 8px rgba(0,0,0,0.6);"></div>\';'
+        +   'return L.divIcon({html:h,className:"marker-ubi",iconSize:[22,22],iconAnchor:[11,22],popupAnchor:[5,-20]});'
+        + '}'
+        + 'function popupHtml(item,tipo){'
+        +   'var chapas=Array.isArray(item.chapas)?item.chapas:[];'
+        +   'var tl=tipo==="sala"?"\uD83C\uDFE2 Sala propia":"\uD83C\uDF7A Local / Bar";'
+        +   'var gm=(item.latitud&&item.longitud)?\'<a href="https://www.google.com/maps?q=\'+item.latitud+\',\'+item.longitud+\'" target="_blank" style="display:inline-block;margin-top:10px;padding:5px 12px;background:rgba(168,85,247,0.3);border:1px solid rgba(168,85,247,0.5);border-radius:8px;color:#c084fc;font-size:11px;text-decoration:none;">\uD83D\uDDFA\uFE0F Ver en Google Maps<\/a>\':\'\';'
+        +   'var ch=chapas.length?\'<div style="margin-top:8px"><div style="font-size:10px;color:#94a3b8;margin-bottom:4px">CHAPAS<\/div><div style="display:flex;flex-wrap:wrap;gap:4px">\'+chapas.map(function(c){return\'<span style="background:rgba(168,85,247,0.25);border:1px solid rgba(168,85,247,0.4);border-radius:6px;padding:2px 7px;font-size:11px;color:#e2e8f0;">\'+c+\'<\/span>\';}).join("")+"<\/div><\/div>":\'<div style="margin-top:8px;font-size:11px;color:#64748b">Sin chapas<\/div>\';'
+        +   'return \'<div style="min-width:200px;max-width:280px;padding:4px"><div style="font-size:13px;font-weight:700;color:white;margin-bottom:2px">\'+( item.nombre||"")+\'<\/div><div style="font-size:10px;color:#a855f7;margin-bottom:4px">\'+tl+\'<\/div>\'+(item.direccion?\'<div style="font-size:11px;color:#94a3b8">\uD83D\uDCCD \'+item.direccion+\'<\/div>\':"")+ch+gm+"<\/div>";'
+        + '}'
+        + 'function cargarPuntos(puntos){'
+        +   'markers.forEach(function(m){m.remove();});markers=[];'
+        +   'var cc=puntos.filter(function(p){return p.latitud&&p.longitud;});'
+        +   'cc.forEach(function(p){var mk=L.marker([p.latitud,p.longitud],{icon:iconoUbicacion(p._tipo,false)}).addTo(mapa).bindPopup(popupHtml(p,p._tipo),{maxWidth:300});markers.push(mk);});'
+        +   'if(cc.length>1){mapa.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));}else if(cc.length===1){mapa.setView([cc[0].latitud,cc[0].longitud],15);}'
+        +   'mapa.invalidateSize();'
+        + '}'
+        + 'function centrarEnMarcador(lat,lng){'
+        +   'mapa.setView([lat,lng],16);'
+        +   'var mk=markers.find(function(m){var ll=m.getLatLng();return Math.abs(ll.lat-lat)<0.0001&&Math.abs(ll.lng-lng)<0.0001;});'
+        +   'if(mk)mk.openPopup();'
+        + '}'
+        + 'window.addEventListener("message",function(e){'
+        +   'var msg=e.data;if(!msg||!msg.tipo)return;'
+        +   'if(msg.tipo==="cargarPuntos")cargarPuntos(msg.puntos||[]);'
+        +   'else if(msg.tipo==="centrarEnMarcador")centrarEnMarcador(msg.lat,msg.lng);'
+        + '});'
+        + 'window.addEventListener("load",function(){'
+        +   'try{var r=localStorage.getItem("ub_puntos");if(r)cargarPuntos(JSON.parse(r));}catch(e){}'
+        + '});'
+        + '<\/script><\/body><\/html>';
+
+    var iframe = document.getElementById('mapaFrame');
+    if (iframe) iframe.srcdoc = html;
+})();
 </script>
 </body>
 </html>
