@@ -206,6 +206,9 @@
         <button onclick="navigateTo('salas')" class="nav-tab px-4 py-2.5 rounded-lg text-sm shrink-0" data-page="salas">
             🏪 Salas
         </button>
+        <button onclick="navigateTo('ubicaciones')" class="nav-tab px-4 py-2.5 rounded-lg text-sm shrink-0" data-page="ubicaciones">
+            📍 Ubicaciones
+        </button>
         <button onclick="navigateTo('dashboardGlobal')" class="nav-tab px-4 py-2.5 rounded-lg text-sm shrink-0" data-page="dashboardGlobal">
             🌐 Dashboard Global
         </button>
@@ -984,6 +987,59 @@
 
 </div>
 
+<!-- ===== SECCIÓN: UBICACIONES ===== -->
+<div id="seccionUbicaciones" class="hidden fade-in" style="max-width:80rem;margin:0 auto;padding:0 1rem 3rem">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h2 class="text-lg font-bold">📍 Ubicaciones</h2>
+        <div class="flex gap-2">
+            <button onclick="abrirModalNuevoEstablecimiento()"
+                    class="px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white text-sm font-bold hover:from-purple-700 hover:to-pink-700 transition-all">
+                ➕ Nuevo Local
+            </button>
+        </div>
+    </div>
+
+    <!-- Layout: mapa izquierda, lista derecha -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Mapa -->
+        <div class="lg:col-span-2">
+            <div class="rounded-xl" style="height:520px;overflow:hidden;">
+                <iframe id="mapaFrame" src="mapa.html"
+                    style="height:520px;width:100%;border:none;border-radius:12px;display:block;">
+                </iframe>
+            </div>
+            <p class="text-xs text-slate-500 mt-2 text-center">Mapa © OpenStreetMap — Click en un marcador para ver detalles</p>
+        </div>
+
+        <!-- Lista de puntos -->
+        <div class="lg:col-span-1 flex flex-col gap-3">
+            <!-- Leyenda -->
+            <div class="card-glass rounded-xl p-3 flex gap-4 text-xs">
+                <span class="flex items-center gap-1.5"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#a855f7;"></span> Sala propia</span>
+                <span class="flex items-center gap-1.5"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#f97316;"></span> Local / Bar</span>
+                <span class="flex items-center gap-1.5"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#475569;"></span> Sin coords</span>
+            </div>
+            <!-- Filtros -->
+            <div class="card-glass rounded-xl p-3 flex flex-col gap-2">
+                <input id="filtroUbNombre" type="text" placeholder="🔍 Buscar por nombre..."
+                       oninput="_filtrarUbicaciones()"
+                       class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-sm w-full focus:outline-none focus:border-purple-400">
+                <input id="filtroUbChapa" type="text" placeholder="🔖 Buscar por chapa..."
+                       oninput="_filtrarUbicaciones()"
+                       class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-sm w-full focus:outline-none focus:border-purple-400">
+            </div>
+            <!-- Lista scrollable -->
+            <div id="listaUbicaciones" class="space-y-2 overflow-y-auto" style="max-height:370px;">
+                <div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm">Cargando...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 <!-- ===== SECCIÓN: DASHBOARD GLOBAL ===== -->
 <div id="seccionDashboardGlobal" class="hidden fade-in" style="max-width:80rem;margin:0 auto;padding:0 1rem 3rem">
 
@@ -1445,6 +1501,61 @@
     </div>
 </div>
 
+<!-- ================ MODAL: ESTABLECIMIENTO / SALA UBICACIÓN ================ -->
+<div id="modalUbicacion" class="modal-overlay hidden">
+    <div class="card-glass-strong rounded-2xl p-6 w-full max-w-lg shadow-2xl fade-in mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold" id="modalUbicacionTitulo">➕ Nuevo Local / Establecimiento</h3>
+            <button onclick="cerrarModalUbicacion()" class="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
+        <input type="hidden" id="ubId">
+        <input type="hidden" id="ubTipo">
+        <div class="space-y-4">
+            <!-- Solo para establecimientos (no salas) -->
+            <div id="ubNombreRow">
+                <label class="text-xs text-purple-300 block mb-1">Nombre del Local *</label>
+                <input type="text" id="ubNombre" placeholder="Ej: Bar El Rincón"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Dirección / Referencia</label>
+                <input type="text" id="ubDireccion" placeholder="Ej: Av. Central, frente al parque"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Latitud</label>
+                    <input type="number" id="ubLatitud" step="0.000001" placeholder="Ej: 8.9936"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+                <div>
+                    <label class="text-xs text-purple-300 block mb-1">Longitud</label>
+                    <input type="number" id="ubLongitud" step="0.000001" placeholder="Ej: -79.5197"
+                           class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+                </div>
+            </div>
+            <p class="text-xs text-slate-500">💡 Podés obtener las coordenadas haciendo click derecho en Google Maps → "¿Qué hay aquí?"</p>
+            <div>
+                <label class="text-xs text-purple-300 block mb-1">Chapas asignadas</label>
+                <input type="text" id="ubChapas" placeholder="Ej: 1, 2, 3, 45, 46"
+                       class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-purple-400">
+                <p class="text-xs text-slate-500 mt-1">Separadas por coma</p>
+            </div>
+            <p id="ubError" class="text-red-400 text-xs hidden"></p>
+            <div class="flex gap-3 pt-1">
+                <button onclick="cerrarModalUbicacion()"
+                        class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition-all">
+                    Cancelar
+                </button>
+                <button onclick="guardarUbicacion()" id="btnGuardarUbicacion"
+                        class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white text-sm font-bold hover:from-purple-700 hover:to-pink-700 transition-all">
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ================ MODAL: DATO HISTÓRICO ================ -->
 <div id="modalDatoHistorico" class="modal-overlay hidden">
     <div class="card-glass-strong rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in mx-4">
@@ -1611,6 +1722,11 @@ function logoutAdmin() {
     detenerTimerInactividad();
     adminActual = null;
     cancelarSubscripciones();
+    // Limpiar datos del mapa y reiniciar iframe
+    localStorage.removeItem('ub_puntos');
+    localStorage.removeItem('ub_cmd');
+    const mapaFrame = document.getElementById('mapaFrame');
+    if (mapaFrame) mapaFrame.src = 'mapa.html';
     document.getElementById('adminPanel').classList.add('hidden');
     document.getElementById('loginPage').classList.remove('hidden');
     document.getElementById('loginUsuario').value = '';
@@ -1684,7 +1800,7 @@ async function mostrarPanel() {
 }
 
 function navigateTo(page) {
-    ['seccionUsuarios', 'seccionDashboard', 'seccionColectas', 'seccionPerdidas', 'seccionPrestamos', 'seccionSalas', 'seccionDashboardGlobal'].forEach(id => {
+    ['seccionUsuarios', 'seccionDashboard', 'seccionColectas', 'seccionPerdidas', 'seccionPrestamos', 'seccionSalas', 'seccionUbicaciones', 'seccionDashboardGlobal'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
     });
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1708,6 +1824,9 @@ function navigateTo(page) {
     } else if (page === 'salas') {
         document.getElementById('seccionSalas').classList.remove('hidden');
         cargarSalas();
+    } else if (page === 'ubicaciones') {
+        document.getElementById('seccionUbicaciones').classList.remove('hidden');
+        cargarUbicaciones();
     } else if (page === 'dashboardGlobal') {
         document.getElementById('seccionDashboardGlobal').classList.remove('hidden');
         cargarDashboardGlobal();
@@ -2869,6 +2988,235 @@ function renderizarComparativaGlobal(colectas) {
             }
         }
     });
+}
+
+// ========== UBICACIONES ==========
+async function cargarUbicaciones() {
+    const lista = document.getElementById('listaUbicaciones');
+    if (lista) lista.innerHTML = '<div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm">Cargando...</div>';
+
+    try {
+        const [resS, resE] = await Promise.all([
+            insforge.database.from('salas').select('id,nombre,latitud,longitud,direccion,chapas').order('nombre'),
+            insforge.database.from('establecimientos').select('*').eq('activo', true).order('nombre')
+        ]);
+        if (resS.error) throw resS.error;
+        if (resE.error) throw resE.error;
+
+        const puntos = [
+            ...(resS.data || []).map(s => ({ ...s, _tipo: 'sala' })),
+            ...(resE.data || []).map(e => ({ ...e, _tipo: 'local' }))
+        ];
+
+        // Pasar datos al iframe via localStorage (más confiable que postMessage)
+        localStorage.setItem('ub_puntos', JSON.stringify(puntos));
+        localStorage.setItem('ub_cmd', '');  // limpiar comando de centrar previo
+
+        // Recargar el iframe para que lea los datos frescos
+        const iframe = document.getElementById('mapaFrame');
+        if (iframe) iframe.src = 'mapa.html?t=' + Date.now();
+
+        _renderizarListaUbicaciones(puntos);
+
+    } catch (e) {
+        console.error('Error en cargarUbicaciones:', e);
+        if (lista) lista.innerHTML = `<div class="card-glass rounded-xl p-4 text-center text-red-400 text-sm">Error: ${e.message || e}</div>`;
+        showNotification('Error cargando ubicaciones: ' + (e.message || e), 'error');
+    }
+}
+
+let _todosLosPuntosUb = [];
+
+function _renderizarListaUbicaciones(puntos) {
+    _todosLosPuntosUb = puntos;
+    // Limpiar filtros al cargar datos nuevos
+    const fn = document.getElementById('filtroUbNombre');
+    const fc = document.getElementById('filtroUbChapa');
+    if (fn) fn.value = '';
+    if (fc) fc.value = '';
+    _renderListaFiltrada(puntos);
+}
+
+function _filtrarUbicaciones() {
+    const nombre = (document.getElementById('filtroUbNombre')?.value || '').toLowerCase().trim();
+    const chapa  = (document.getElementById('filtroUbChapa')?.value  || '').toLowerCase().trim();
+    const filtrados = _todosLosPuntosUb.filter(p => {
+        const chapas = Array.isArray(p.chapas) ? p.chapas : [];
+        const okNombre = !nombre || (p.nombre || '').toLowerCase().includes(nombre);
+        const okChapa  = !chapa  || chapas.some(c => String(c).toLowerCase().includes(chapa));
+        return okNombre && okChapa;
+    });
+    _renderListaFiltrada(filtrados);
+}
+
+function _renderListaFiltrada(puntos) {
+    const lista = document.getElementById('listaUbicaciones');
+    if (!lista) return;
+    if (!puntos.length) {
+        lista.innerHTML = '<div class="card-glass rounded-xl p-4 text-center text-slate-400 text-sm">Sin resultados.</div>';
+        return;
+    }
+    lista.innerHTML = puntos.map(p => {
+        const chapas = Array.isArray(p.chapas) ? p.chapas : [];
+        const tieneCoords = p.latitud && p.longitud;
+        const badge = p._tipo === 'sala'
+            ? `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(168,85,247,0.2);color:#c084fc;">🏢 Sala</span>`
+            : `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(249,115,22,0.2);color:#fb923c;">🍺 Local</span>`;
+        const coordBadge = tieneCoords
+            ? `<span class="text-xs text-green-400">📍 En mapa</span>`
+            : `<span class="text-xs text-slate-500">⚠️ Sin coords</span>`;
+        const chapasHtml = chapas.length
+            ? `<div class="flex flex-wrap gap-1 mt-1">${chapas.map(c => `<span class="text-xs px-1.5 py-0.5 rounded" style="background:rgba(168,85,247,0.15);color:#c084fc;">${c}</span>`).join('')}</div>`
+            : '';
+        const btnEliminar = p._tipo === 'local'
+            ? `<button onclick="event.stopPropagation(); eliminarUbicacion('${p.id}', '${(p.nombre||'').replace(/'/g,"\\'")}')"
+                       class="text-xs px-2 py-1 rounded-lg text-red-400 hover:bg-red-900 hover:bg-opacity-40 transition-all" title="Eliminar local">
+                   🗑️
+               </button>` : '';
+        return `<div class="card-glass rounded-xl p-3 cursor-pointer hover:bg-slate-700 hover:bg-opacity-30 transition-all"
+                     onclick="_centrarEnMarcador(${p.latitud || 0}, ${p.longitud || 0}, '${(p.nombre||'').replace(/'/g,"\\'")}')">
+            <div class="flex items-start justify-between gap-2 mb-1">
+                <span class="text-sm font-semibold text-white">${p.nombre}</span>
+                ${badge}
+            </div>
+            ${chapasHtml}
+            <div class="flex items-center justify-between mt-1">
+                <span class="text-xs text-slate-400">${chapas.length} chapa${chapas.length !== 1 ? 's' : ''}</span>
+                <div class="flex items-center gap-1">
+                    ${coordBadge}
+                    <button onclick="event.stopPropagation(); editarUbicacion('${p.id}','${p._tipo}')"
+                            class="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-all">
+                        ✏️
+                    </button>
+                    ${btnEliminar}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function _centrarEnMarcador(lat, lng, nombre) {
+    if (!lat || !lng) return;
+    const iframe = document.getElementById('mapaFrame');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ tipo: 'centrarEnMarcador', lat, lng }, '*');
+    }
+}
+
+function abrirModalNuevoEstablecimiento() {
+    document.getElementById('ubId').value      = '';
+    document.getElementById('ubTipo').value    = 'local';
+    document.getElementById('ubNombre').value  = '';
+    document.getElementById('ubDireccion').value = '';
+    document.getElementById('ubLatitud').value  = '';
+    document.getElementById('ubLongitud').value = '';
+    document.getElementById('ubChapas').value   = '';
+    document.getElementById('ubNombreRow').style.display = '';
+    document.getElementById('modalUbicacionTitulo').textContent = '➕ Nuevo Local / Establecimiento';
+    document.getElementById('ubError').classList.add('hidden');
+    document.getElementById('modalUbicacion').classList.remove('hidden');
+}
+
+async function editarUbicacion(id, tipo) {
+    let item;
+    if (tipo === 'sala') {
+        const { data } = await insforge.database.from('salas').select('*').eq('id', id).single();
+        item = data;
+    } else {
+        const { data } = await insforge.database.from('establecimientos').select('*').eq('id', id).single();
+        item = data;
+    }
+    if (!item) return;
+
+    const chapas = Array.isArray(item.chapas) ? item.chapas.join(', ') : '';
+    document.getElementById('ubId').value       = item.id;
+    document.getElementById('ubTipo').value     = tipo;
+    document.getElementById('ubDireccion').value = item.direccion || '';
+    document.getElementById('ubLatitud').value   = item.latitud  || '';
+    document.getElementById('ubLongitud').value  = item.longitud || '';
+    document.getElementById('ubChapas').value    = chapas;
+    document.getElementById('ubError').classList.add('hidden');
+
+    if (tipo === 'sala') {
+        document.getElementById('ubNombreRow').style.display = 'none';
+        document.getElementById('modalUbicacionTitulo').textContent = '✏️ Editar Sala: ' + item.nombre;
+    } else {
+        document.getElementById('ubNombreRow').style.display = '';
+        document.getElementById('ubNombre').value = item.nombre || '';
+        document.getElementById('modalUbicacionTitulo').textContent = '✏️ Editar Local: ' + item.nombre;
+    }
+    document.getElementById('modalUbicacion').classList.remove('hidden');
+}
+
+function cerrarModalUbicacion() {
+    document.getElementById('modalUbicacion').classList.add('hidden');
+}
+
+async function guardarUbicacion() {
+    const errEl  = document.getElementById('ubError');
+    const btnEl  = document.getElementById('btnGuardarUbicacion');
+    errEl.classList.add('hidden');
+
+    const id       = document.getElementById('ubId').value;
+    const tipo     = document.getElementById('ubTipo').value;
+    const nombre   = document.getElementById('ubNombre').value.trim();
+    const direccion= document.getElementById('ubDireccion').value.trim();
+    const latStr   = document.getElementById('ubLatitud').value.trim();
+    const lngStr   = document.getElementById('ubLongitud').value.trim();
+    const chapasStr= document.getElementById('ubChapas').value.trim();
+
+    const latitud  = latStr  ? parseFloat(latStr)  : null;
+    const longitud = lngStr  ? parseFloat(lngStr)  : null;
+    const chapas   = chapasStr ? chapasStr.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+    if (tipo === 'local' && !id && !nombre) {
+        errEl.textContent = 'El nombre es obligatorio.';
+        errEl.classList.remove('hidden'); return;
+    }
+    if ((latStr && !longitud) || (!latStr && lngStr)) {
+        errEl.textContent = 'Ingresá latitud Y longitud, o dejá ambas vacías.';
+        errEl.classList.remove('hidden'); return;
+    }
+
+    btnEl.disabled = true; btnEl.textContent = 'Guardando...';
+
+    try {
+        if (tipo === 'sala') {
+            const { error } = await insforge.database.from('salas')
+                .update({ direccion: direccion || null, latitud, longitud, chapas })
+                .eq('id', id);
+            if (error) throw error;
+        } else if (id) {
+            const { error } = await insforge.database.from('establecimientos')
+                .update({ nombre, direccion: direccion || null, latitud, longitud, chapas })
+                .eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await insforge.database.from('establecimientos')
+                .insert({ nombre, direccion: direccion || null, latitud, longitud, chapas, activo: true });
+            if (error) throw error;
+        }
+        showNotification('✅ Ubicación guardada', 'success');
+        cerrarModalUbicacion();
+        cargarUbicaciones();
+    } catch (e) {
+        errEl.textContent = 'Error: ' + (e.message || e);
+        errEl.classList.remove('hidden');
+    } finally {
+        btnEl.disabled = false; btnEl.textContent = 'Guardar';
+    }
+}
+
+async function eliminarUbicacion(id, nombre) {
+    if (!confirm(`¿Eliminar el local "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+    try {
+        const { error } = await insforge.database.from('establecimientos').delete().eq('id', id);
+        if (error) throw error;
+        showNotification('✅ Local eliminado', 'success');
+        cargarUbicaciones();
+    } catch (e) {
+        showNotification('Error al eliminar: ' + (e.message || e), 'error');
+    }
 }
 
 // ========== DASHBOARD GLOBAL ==========
@@ -4441,6 +4789,7 @@ function recargarPaginaActual() {
         'seccionPerdidas':       () => cargarPerdidas(),
         'seccionPrestamos':      () => cargarPrestamos(),
         'seccionSalas':          () => cargarSalas(),
+        'seccionUbicaciones':    () => cargarUbicaciones(),
         'seccionDashboardGlobal':() => cargarDashboardGlobal()
     };
     for (const [id, fn] of Object.entries(mapa)) {
