@@ -100,6 +100,30 @@
             .modal-overlay { align-items: flex-start; padding: 0.75rem; overflow-y: auto; }
             .notification-container { max-width: calc(100vw - 2rem); right: 1rem; left: 1rem; }
         }
+        /* ===== MODO CONSULTA (rol 'colector') =====
+           Esconde los botones que modifican datos. Se usan selectores por
+           atributo para que también aplique a los botones que se generan
+           dentro de las tablas, sin tener que tocar cada plantilla.
+           OJO: esto es solo cosmético — el bloqueo real está en las
+           funciones de JS y, sobre todo, en las reglas RLS del servidor. */
+        body.modo-consulta [onclick^="guardar"],
+        body.modo-consulta [onclick^="eliminar"],
+        body.modo-consulta [onclick^="editar"],
+        body.modo-consulta [onclick^="crear"],
+        body.modo-consulta [onclick^="toggle"],
+        body.modo-consulta [onclick^="abrirModal"],
+        body.modo-consulta [onclick^="confirmarEliminar"] {
+            display: none !important;
+        }
+        .badge-consulta {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #93c5fd;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.6rem;
+            border-radius: 9999px;
+        }
     </style>
 </head>
 <body class="gradient-bg text-white font-sans">
@@ -1708,17 +1732,19 @@ async function loginAdmin() {
             throw new Error('Usuario o contraseña incorrectos');
         }
 
-        // Colectores van directo a la página de salas (mantienen su sesión).
+        // Los OPERADORES de salas (jhon, angel) van directo al sitio de salas.
         // Ojo: salas vive en OTRO repo/sitio (lorensSalas), no en esta carpeta.
         // Apuntar a 'salas.html' daba 404 porque ese archivo no existe aquí.
-        if (data.rol === 'colector') {
+        if (data.rol === 'operador') {
             window.location.href = 'https://lorensgamingsa-lang.github.io/lorensSalas/';
             return;
         }
 
-        if (data.rol !== 'admin') {
+        // admin  -> panel completo
+        // colector -> mismo panel pero en modo consulta (sin botones de edición)
+        if (!['admin', 'colector'].includes(data.rol)) {
             await insforge.auth.signOut();
-            throw new Error('Acceso denegado: solo administradores');
+            throw new Error('Acceso denegado para este rol');
         }
 
         adminActual = {
@@ -1828,11 +1854,56 @@ function continuarSesion() {
     resetearTimerInactividad();
 }
 
+// ===== MODO CONSULTA (rol 'colector') =====
+// El colector entra al mismo panel que el admin, pero solo para mirar.
+// Se aplican dos capas:
+//   1. CSS: esconde los botones de modificar (cosmético, se puede saltar con F12).
+//   2. JS: reemplaza las funciones que escriben por un aviso.
+// Ninguna de las dos es seguridad real. La seguridad real son las reglas
+// RLS del servidor, que impiden que un colector toque datos ajenos o se
+// ascienda a admin. Esto es solo para que el panel no confunda.
+const FUNCIONES_QUE_MODIFICAN = [
+    'guardarUsuario', 'guardarUbicacion', 'guardarRegistroSala', 'guardarRefinanciamiento',
+    'guardarPrestamo', 'guardarGastoSala', 'guardarDatoHistorico',
+    'eliminarUsuario', 'eliminarSala', 'eliminarRegistroSala', 'eliminarHistorico',
+    'eliminarGastoSala', 'eliminarEventoRefinanciamiento', 'eliminarAbonoPrestamo',
+    'editarRegistroSala', 'editarGastoSala', 'crearSala',
+    'toggleSalaActiva', 'toggleActivoUsuario', 'confirmarEliminarPrestamo',
+    'abrirModalUsuario', 'abrirModalUbicacion', 'abrirModalRegistroSala',
+    'abrirModalPrestamo', 'abrirModalGastoSala', 'abrirModalDatoHistorico',
+    'abrirModalGestionarSalas', 'abrirModalGestionarHistoricos', 'abrirModalRefinanciar'
+];
+
+function aplicarModoConsulta() {
+    document.body.classList.add('modo-consulta');
+
+    FUNCIONES_QUE_MODIFICAN.forEach(nombre => {
+        if (typeof window[nombre] === 'function') {
+            window[nombre] = function () {
+                showNotification('Tu usuario es de consulta: podés ver todo, pero no modificar desde el panel.', 'error');
+            };
+        }
+    });
+
+    // Distintivo visible para que se entienda por qué faltan los botones.
+    const cont = document.getElementById('adminNombre')?.parentElement;
+    if (cont && !document.getElementById('badgeConsulta')) {
+        const b = document.createElement('span');
+        b.id = 'badgeConsulta';
+        b.className = 'badge-consulta';
+        b.textContent = '👁 Solo consulta';
+        cont.appendChild(b);
+    }
+}
+
 // ========== PANEL ==========
 async function mostrarPanel() {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('adminPanel').classList.remove('hidden');
     document.getElementById('adminNombre').textContent = adminActual.nombre;
+
+    if (adminActual.rol !== 'admin') aplicarModoConsulta();
+
     await cargarFiltroUsuarios();
     navigateTo('dashboard');
     iniciarRealtime();
