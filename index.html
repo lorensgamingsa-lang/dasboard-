@@ -1620,10 +1620,18 @@
 
 <script>
 // ========== CONFIGURACIÓN ==========
+// La anonKey es pública por diseño: identifica al proyecto pero NO da
+// permisos por sí sola. Los permisos salen de la sesión de cada usuario
+// más las reglas RLS del servidor. Nunca poner aquí la API key de
+// administrador: esa ignora todas las reglas de seguridad.
 const INSFORGE_CONFIG = {
     baseUrl: 'https://bn9588kv.us-east.insforge.app',
-    anonKey: 'ik_c35fd8e48649cf4ffa4a18850b3765ba'
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3OC0xMjM0LTU2NzgtOTBhYi1jZGVmMTIzNDU2NzgiLCJlbWFpbCI6ImFub25AaW5zZm9yZ2UuY29tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MTI4NTZ9.6TKQxX_OEaSvKv-yPFdH9paTqHdIMEGnBckznhvOUPo'
 };
+
+// Los usuarios entran con su nombre de usuario; la app le agrega este
+// sufijo por detrás para formar el email de la cuenta.
+const DOMINIO_CUENTAS = '@colecta.local';
 
 let insforge = null;
 let adminActual = null;
@@ -1643,13 +1651,8 @@ async function inicializarInsForge() {
             baseUrl: INSFORGE_CONFIG.baseUrl,
             anonKey: INSFORGE_CONFIG.anonKey
         });
-        // Sign in con cuenta de servicio para obtener rol 'authenticated' (CRUD)
-        const { data: authData, error: authError } = await insforge.auth.signInWithPassword({
-            email: 'admin@lorens.com',
-            password: '25021985'
-        });
-        if (authError) console.warn('Auth signIn warning:', authError);
-        else console.log('InsForge authenticated OK');
+        // Sin sesión todavía: el cliente arranca como visitante y no puede
+        // leer nada. La sesión la crea el usuario al iniciar sesión.
         console.log('InsForge SDK inicializado');
         return true;
     } catch (error) {
@@ -1682,18 +1685,36 @@ async function loginAdmin() {
             if (!ok) throw new Error('No se pudo conectar con el servidor');
         }
 
+        // 1) Autenticación real contra el servidor. Si la clave no es
+        //    correcta, aquí no se obtiene sesión y no se puede leer nada.
+        const { error: errorAuth } = await insforge.auth.signInWithPassword({
+            email: usuario + DOMINIO_CUENTAS,
+            password: clave
+        });
+
+        if (errorAuth) throw new Error('Usuario o contraseña incorrectos');
+
+        // 2) Con la sesión ya creada, leer el perfil. Las reglas del
+        //    servidor limitan esta consulta a la fila del propio usuario.
         const { data, error } = await insforge.database
             .from('usuarios')
-            .select('*')
+            .select('id, nombre, usuario, rol, activo')
             .eq('usuario', usuario)
-            .eq('clave', clave)
             .eq('activo', true)
             .single();
 
-        if (error || !data) throw new Error('Usuario o contraseña incorrectos');
-        // Colectores van directo a la página de salas
+        if (error || !data) {
+            await insforge.auth.signOut();
+            throw new Error('Usuario o contraseña incorrectos');
+        }
+
+        // Colectores van directo a la página de salas (mantienen su sesión)
         if (data.rol === 'colector') { window.location.href = 'salas.html'; return; }
-        if (data.rol !== 'admin') throw new Error('Acceso denegado: solo administradores');
+
+        if (data.rol !== 'admin') {
+            await insforge.auth.signOut();
+            throw new Error('Acceso denegado: solo administradores');
+        }
 
         adminActual = {
             id: data.id,
@@ -1713,9 +1734,11 @@ async function loginAdmin() {
     }
 }
 
-function logoutAdmin() {
+async function logoutAdmin() {
     detenerTimerInactividad();
     adminActual = null;
+    // Cerrar la sesión de verdad en el servidor, no solo en el navegador.
+    try { if (insforge) await insforge.auth.signOut(); } catch (e) { console.warn('signOut:', e); }
     cancelarSubscripciones();
     // Limpiar marcadores del mapa al cerrar sesión
     try { localStorage.removeItem('ub_puntos'); } catch(e) {}
@@ -1732,6 +1755,22 @@ function logoutAdmin() {
 async function restaurarSesion() {
     // Sesión nunca se guarda — siempre requiere login manual
     return false;
+}
+
+// Renueva el token de acceso usando la sesión que ya tiene el navegador.
+// Antes esto se hacía volviendo a entrar con la cuenta de servicio; ahora
+// no hay ninguna contraseña en el código, así que se usa el mecanismo de
+// refresco del SDK. Si la sesión murió de verdad, devuelve false y hay
+// que volver a pedir usuario y clave.
+async function renovarSesion() {
+    try {
+        if (!insforge) return false;
+        const { data, error } = await insforge.auth.getCurrentUser();
+        return !error && !!data?.user;
+    } catch (e) {
+        console.warn('No se pudo renovar la sesión:', e);
+        return false;
+    }
 }
 
 // ========== TIMER DE INACTIVIDAD (10 min) ==========
@@ -4811,17 +4850,19 @@ async function verificarYReconectar() {
         console.warn(`Error de conexión (intento ${consecutiveErrors}):`, e.message);
 
         if (consecutiveErrors >= 2) {
-            // Intentar re-autenticar
+            // Intentar renovar la sesión del propio usuario.
             actualizarIndicador('reconectando');
-            const ok = await inicializarInsForge();
+            const ok = await renovarSesion();
             if (ok) {
                 consecutiveErrors = 0;
                 actualizarIndicador('polling');
                 showNotification('🔄 Sesión renovada automáticamente', 'info');
                 return true;
             } else {
-                // No se pudo reconectar, pedir al usuario que recargue
+                // La sesión expiró de verdad: hay que volver a entrar.
                 actualizarIndicador('error');
+                showNotification('Tu sesión expiró. Volvé a iniciar sesión.', 'error');
+                logoutAdmin();
                 return false;
             }
         }
@@ -5519,11 +5560,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.addEventListener(ev, resetearTimerInactividad, { passive: true });
     });
 
-    // Re-autenticar preventivamente cada 45 minutos (antes de que expire el token)
+    // Renovar el token preventivamente cada 45 minutos (antes de que expire).
     reAuthInterval = setInterval(async () => {
         if (!adminActual) return;
-        console.log('Re-autenticación preventiva...');
-        await inicializarInsForge();
+        console.log('Renovación preventiva de sesión...');
+        const ok = await renovarSesion();
+        if (!ok) {
+            showNotification('Tu sesión expiró. Volvé a iniciar sesión.', 'error');
+            logoutAdmin();
+        }
     }, 45 * 60 * 1000);
 
     // Recargar datos cuando el usuario vuelve a la pestaña después de tenerla inactiva
