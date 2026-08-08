@@ -1708,8 +1708,13 @@ async function loginAdmin() {
             throw new Error('Usuario o contraseña incorrectos');
         }
 
-        // Colectores van directo a la página de salas (mantienen su sesión)
-        if (data.rol === 'colector') { window.location.href = 'salas.html'; return; }
+        // Colectores van directo a la página de salas (mantienen su sesión).
+        // Ojo: salas vive en OTRO repo/sitio (lorensSalas), no en esta carpeta.
+        // Apuntar a 'salas.html' daba 404 porque ese archivo no existe aquí.
+        if (data.rol === 'colector') {
+            window.location.href = 'https://lorensgamingsa-lang.github.io/lorensSalas/';
+            return;
+        }
 
         if (data.rol !== 'admin') {
             await insforge.auth.signOut();
