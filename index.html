@@ -1328,8 +1328,9 @@
                 <div>
                     <label class="text-xs text-purple-300 block mb-1">Rol</label>
                     <select id="formRol" class="w-full bg-slate-700 border border-purple-500 border-opacity-30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400">
-                        <option value="colector">Colector</option>
-                        <option value="admin">Administrador</option>
+                        <option value="colector">Colector — app del celular + panel (consulta)</option>
+                        <option value="operador">Operador — solo el sitio de Salas</option>
+                        <option value="admin">Administrador — acceso total</option>
                     </select>
                 </div>
             </div>
@@ -2259,6 +2260,7 @@ function abrirModalUsuario() {
     document.getElementById('formNombre').value = '';
     document.getElementById('formUsuario').value = '';
     document.getElementById('formClave').value = '';
+    document.getElementById('formClave').placeholder = 'mínimo 6 caracteres';
     document.getElementById('formRol').value = 'colector';
     document.getElementById('formGoogleUrl').value = '';
     document.getElementById('formGoogleEntries').value = '';
@@ -2270,7 +2272,10 @@ function editarUsuario(u) {
     document.getElementById('editUsuarioId').value = u.id;
     document.getElementById('formNombre').value = u.nombre;
     document.getElementById('formUsuario').value = u.usuario;
-    document.getElementById('formClave').value = u.clave;
+    // La contraseña ya no se puede leer: está cifrada en el servidor.
+    // Se deja vacía; si el admin escribe una, se cambia. Si no, se conserva.
+    document.getElementById('formClave').value = '';
+    document.getElementById('formClave').placeholder = 'dejar vacío para no cambiarla';
     document.getElementById('formRol').value = u.rol;
     document.getElementById('formGoogleUrl').value = u.google_form_url || '';
     document.getElementById('formGoogleEntries').value = u.google_form_entries ? JSON.stringify(u.google_form_entries, null, 2) : '';
@@ -2290,8 +2295,14 @@ async function guardarUsuario() {
     const googleUrl = document.getElementById('formGoogleUrl').value.trim() || null;
     const googleEntriesRaw = document.getElementById('formGoogleEntries').value.trim();
 
-    if (!nombre || !usuario || !clave) {
+    // Al editar, la contraseña es opcional: vacía = no cambiarla.
+    if (!nombre || !usuario || (!id && !clave)) {
         showNotification('Nombre, usuario y contraseña son obligatorios', 'error');
+        return;
+    }
+
+    if (clave && clave.length < 6) {
+        showNotification('La contraseña debe tener al menos 6 caracteres', 'error');
         return;
     }
 
@@ -2301,26 +2312,57 @@ async function guardarUsuario() {
         catch { showNotification('JSON de entries inválido', 'error'); return; }
     }
 
-    const payload = { nombre, usuario, clave, rol, google_form_url: googleUrl, google_form_entries: googleEntries };
+    // Protección contra doble clic: guardar dos veces crearía dos usuarios.
+    const btn = document.getElementById('btnGuardarUsuario');
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
     try {
         if (id) {
-            // Update
-            const { error } = await insforge.database.from('usuarios').update(payload).eq('id', parseInt(id));
+            // --- EDITAR ---
+            // Los datos normales van directo a la tabla (RLS ya exige admin).
+            const { error } = await insforge.database.from('usuarios').update({
+                nombre, usuario, rol,
+                google_form_url: googleUrl,
+                google_form_entries: googleEntries
+            }).eq('id', parseInt(id));
             if (error) throw error;
-            showNotification('Usuario actualizado', 'success');
+
+            // La contraseña va por una función del servidor: el navegador
+            // no tiene —ni debe tener— permiso para tocarla directamente.
+            if (clave) {
+                const { data: r, error: errClave } = await insforge.database
+                    .rpc('admin_cambiar_clave', { p_usuario_id: parseInt(id), p_clave_nueva: clave });
+                if (errClave) throw errClave;
+                if (!r?.ok) throw new Error(r?.mensaje || 'No se pudo cambiar la contraseña');
+                showNotification('Usuario actualizado y contraseña cambiada', 'success');
+            } else {
+                showNotification('Usuario actualizado', 'success');
+            }
+
         } else {
-            // Insert
-            payload.activo = true;
-            const { error } = await insforge.database.from('usuarios').insert(payload);
+            // --- CREAR ---
+            // Una sola llamada crea la fila Y la cuenta de acceso. Antes se
+            // creaba solo la fila, y quedaba alguien que no podía entrar nunca.
+            const { data: r, error } = await insforge.database.rpc('admin_crear_usuario', {
+                p_nombre: nombre,
+                p_usuario: usuario,
+                p_clave: clave,
+                p_rol: rol,
+                p_google_form_url: googleUrl,
+                p_google_form_entries: googleEntries
+            });
             if (error) throw error;
-            showNotification('Usuario creado', 'success');
+            if (!r?.ok) throw new Error(r?.mensaje || 'No se pudo crear el usuario');
+            showNotification(r.mensaje, 'success');
         }
+
         cerrarModalUsuario();
         cargarUsuarios();
         cargarFiltroUsuarios();
     } catch (e) {
         showNotification('Error: ' + (e.message || e), 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
     }
 }
 
@@ -2336,11 +2378,15 @@ async function toggleActivoUsuario(id, nuevoEstado) {
 }
 
 async function eliminarUsuario(id, nombre) {
-    if (!confirm(`¿Eliminar al usuario "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Eliminar al usuario "${nombre}"?\n\nSe borra también su cuenta de acceso. Si tiene colectas cargadas, el sistema no lo va a permitir: en ese caso desactivalo, así no se pierde el histórico.`)) return;
     try {
-        const { error } = await insforge.database.from('usuarios').delete().eq('id', id);
+        // Va por función del servidor para que se borre la fila Y la cuenta
+        // de acceso juntas. Borrar solo la fila dejaba una cuenta huérfana.
+        const { data: r, error } = await insforge.database
+            .rpc('admin_eliminar_usuario', { p_usuario_id: parseInt(id) });
         if (error) throw error;
-        showNotification('Usuario eliminado', 'success');
+        if (!r?.ok) { showNotification(r?.mensaje || 'No se pudo eliminar', 'error'); return; }
+        showNotification(r.mensaje, 'success');
         cargarUsuarios();
         cargarFiltroUsuarios();
     } catch (e) {
