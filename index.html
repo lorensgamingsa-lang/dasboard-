@@ -1671,7 +1671,10 @@ let adColectasParaChapas = [];
 // ========== INSFORGE SDK ==========
 async function inicializarInsForge() {
     try {
-        const { createClient } = await import('https://esm.sh/@insforge/sdk@1.1.5');
+        // Versión 1.5.2: la 1.1.5 NO tiene refreshSession(), así que la
+        // sesión no se podía renovar y se cortaba a los 15 minutos.
+        // Al cambiar de versión, probar contra ESA versión exacta.
+        const { createClient } = await import('https://esm.sh/@insforge/sdk@1.5.2');
         insforge = createClient({
             baseUrl: INSFORGE_CONFIG.baseUrl,
             anonKey: INSFORGE_CONFIG.anonKey
@@ -1797,8 +1800,22 @@ async function restaurarSesion() {
 async function renovarSesion() {
     try {
         if (!insforge) return false;
-        const { data, error } = await insforge.auth.getCurrentUser();
-        return !error && !!data?.user;
+
+        // refreshSession() es la que renueva de verdad. getCurrentUser() NO
+        // sirve: si el SDK ya tiene una sesión en memoria devuelve esa, con
+        // el token vencido incluido, sin consultar al servidor.
+        // Acá (navegador de verdad) el permiso viaja en una cookie, así que
+        // no hay que pasarle nada.
+        const { data, error } = await insforge.auth.refreshSession();
+        if (!error && data?.accessToken) return true;
+
+        // Si la renovación falló, puede ser un problema puntual de red y no
+        // que la sesión esté muerta. Antes de expulsar al usuario, probamos
+        // si la sesión actual todavía sirve.
+        const { error: errPrueba } = await insforge.database
+            .from('usuarios').select('id').limit(1);
+        return !errPrueba;
+
     } catch (e) {
         console.warn('No se pudo renovar la sesión:', e);
         return false;
@@ -1956,6 +1973,33 @@ function formatDateSQL(date) {
     return d.getFullYear() + '-' +
         String(d.getMonth() + 1).padStart(2, '0') + '-' +
         String(d.getDate()).padStart(2, '0');
+}
+
+// El servidor devuelve como MÁXIMO 1000 filas por consulta y no avisa cuando
+// hay más: los dashboards de 12 meses perdían los meses más recientes y las
+// deudas de préstamos salían mal. Este helper pide de a tandas con .range()
+// hasta traer todo. Mismo helper que usa la APK (colecta.html).
+//
+// `construirConsulta` debe devolver una consulta NUEVA en cada llamada (las
+// del SDK no se reutilizan) y SIEMPRE con .order() terminando en una columna
+// única como 'id': sin orden fijo las tandas se solapan o saltean filas.
+const TAMANO_TANDA = 1000;
+const MAX_TANDAS = 50; // tope de seguridad: 50.000 filas
+
+async function traerTodasLasFilas(construirConsulta) {
+    let filas = [];
+    for (let tanda = 0; tanda < MAX_TANDAS; tanda++) {
+        const desde = tanda * TAMANO_TANDA;
+        const { data, error } = await construirConsulta()
+            .range(desde, desde + TAMANO_TANDA - 1);
+
+        if (error) throw new Error(error.message);
+        if (!data || data.length === 0) break;
+
+        filas = filas.concat(data);
+        if (data.length < TAMANO_TANDA) break; // última tanda
+    }
+    return filas;
 }
 
 function formatDateTime(ts) {
@@ -2401,18 +2445,19 @@ async function cargarDashboardAdmin() {
         const filtroUsuario = document.getElementById('filtroUsuario').value;
 
         // Fetch colectas
-        let queryColectas = insforge.database.from('colectas').select('*');
-        if (filtroUsuario !== 'todos') queryColectas = queryColectas.eq('usuario_nombre', filtroUsuario);
-        queryColectas = queryColectas.gte('fecha', fechaInicio).lte('fecha', fechaFin).order('created_at', { ascending: false });
-        const { data: colectas } = await queryColectas;
-        const listaColectas = colectas || [];
+        const listaColectas = await traerTodasLasFilas(() => {
+            let q = insforge.database.from('colectas').select('*');
+            if (filtroUsuario !== 'todos') q = q.eq('usuario_nombre', filtroUsuario);
+            return q.gte('fecha', fechaInicio).lte('fecha', fechaFin)
+                .order('created_at', { ascending: false }).order('id');
+        });
 
         // Fetch movimientos
-        let queryMov = insforge.database.from('movimientos').select('*');
-        if (filtroUsuario !== 'todos') queryMov = queryMov.eq('usuario_nombre', filtroUsuario);
-        queryMov = queryMov.gte('fecha', fechaInicio).lte('fecha', fechaFin);
-        const { data: movimientos } = await queryMov;
-        const listaMovimientos = movimientos || [];
+        const listaMovimientos = await traerTodasLasFilas(() => {
+            let q = insforge.database.from('movimientos').select('*');
+            if (filtroUsuario !== 'todos') q = q.eq('usuario_nombre', filtroUsuario);
+            return q.gte('fecha', fechaInicio).lte('fecha', fechaFin).order('id');
+        });
 
         // Calculate metrics from colectas
         let totalARecibir = 0, totalGananciaCU = 0, totalImpuestoJCJ = 0;
@@ -2792,13 +2837,19 @@ async function actualizarGraficoUsuarios(colectasParam) {
             fechaInicio = desde.toISOString().split('T')[0];
         }
 
-        const { data } = await insforge.database
-            .from('colectas')
-            .select('fecha, usuario_nombre, datos_json')
-            .gte('fecha', fechaInicio)
-            .lte('fecha', fechaFin)
-            .order('fecha', { ascending: true });
-        colectas = data || [];
+        try {
+            colectas = await traerTodasLasFilas(() => insforge.database
+                .from('colectas')
+                .select('fecha, usuario_nombre, datos_json')
+                .gte('fecha', fechaInicio)
+                .lte('fecha', fechaFin)
+                .order('fecha', { ascending: true })
+                .order('id'));
+        } catch (e) {
+            console.error('Error cargando gráfico por usuario:', e);
+            showNotification('No se pudieron cargar los datos del gráfico', 'error');
+            return;
+        }
     }
 
     // Apply current period filter to passed colectas (from cargarDashboardAdmin)
@@ -3001,14 +3052,19 @@ async function cargarComparativaGlobal() {
         fechaInicio = desde.toISOString().split('T')[0];
     }
 
-    const { data } = await insforge.database
-        .from('colectas')
-        .select('fecha, usuario_nombre, datos_json')
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin)
-        .order('fecha', { ascending: true });
-
-    _comparativaGlobalCache = data || [];
+    try {
+        _comparativaGlobalCache = await traerTodasLasFilas(() => insforge.database
+            .from('colectas')
+            .select('fecha, usuario_nombre, datos_json')
+            .gte('fecha', fechaInicio)
+            .lte('fecha', fechaFin)
+            .order('fecha', { ascending: true })
+            .order('id'));
+    } catch (e) {
+        console.error('Error cargando comparativa global:', e);
+        showNotification('No se pudo cargar la comparativa mensual', 'error');
+        return;
+    }
 
     // Re-poblar select de usuario preservando selección actual
     const select = document.getElementById('adCMGFiltroUsuario');
@@ -3401,12 +3457,20 @@ async function cargarDashboardGlobal() {
     }
 
     // Fetch colectas para datos de usuarios
-    const { data: colectas } = await insforge.database
-        .from('colectas')
-        .select('fecha, usuario_nombre, datos_json')
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin)
-        .order('fecha', { ascending: true });
+    let colectas;
+    try {
+        colectas = await traerTodasLasFilas(() => insforge.database
+            .from('colectas')
+            .select('fecha, usuario_nombre, datos_json')
+            .gte('fecha', fechaInicio)
+            .lte('fecha', fechaFin)
+            .order('fecha', { ascending: true })
+            .order('id'));
+    } catch (e) {
+        console.error('Error cargando dashboard global:', e);
+        showNotification('No se pudo cargar el dashboard global', 'error');
+        return;
+    }
 
     // Fetch registros_salas para datos de salas
     const { data: registros } = await insforge.database
@@ -4151,18 +4215,20 @@ async function cargarPerdidas() {
         if (!filtroHasta) { const el = document.getElementById('filtroPerdidasHasta'); if (el && !el.value) el.value = hasta; }
 
         // Fetch gastos from movimientos
-        let queryMov = insforge.database.from('movimientos').select('*').eq('tipo', 'gasto')
-            .gte('fecha', desde).lte('fecha', hasta);
-        if (filtroUsuario !== 'todos') queryMov = queryMov.eq('usuario_nombre', filtroUsuario);
-        const { data: movData } = await queryMov;
-        const listaGastos = movData || [];
+        const listaGastos = await traerTodasLasFilas(() => {
+            let q = insforge.database.from('movimientos').select('*').eq('tipo', 'gasto')
+                .gte('fecha', desde).lte('fecha', hasta);
+            if (filtroUsuario !== 'todos') q = q.eq('usuario_nombre', filtroUsuario);
+            return q.order('id');
+        });
 
         // Fetch colectas for DIF% and devoluciones
-        let queryCol = insforge.database.from('colectas').select('usuario_nombre, fecha, establecimiento, datos_json')
-            .gte('fecha', desde).lte('fecha', hasta);
-        if (filtroUsuario !== 'todos') queryCol = queryCol.eq('usuario_nombre', filtroUsuario);
-        const { data: colData } = await queryCol;
-        const listaColectas = colData || [];
+        const listaColectas = await traerTodasLasFilas(() => {
+            let q = insforge.database.from('colectas').select('usuario_nombre, fecha, establecimiento, datos_json')
+                .gte('fecha', desde).lte('fecha', hasta);
+            if (filtroUsuario !== 'todos') q = q.eq('usuario_nombre', filtroUsuario);
+            return q.order('id');
+        });
 
         // Build unified list of items
         let items = [];
@@ -4366,12 +4432,16 @@ async function cargarPrestamos() {
         if (filtroEst) prestamos = prestamos.filter(p => (p.establecimiento_nombre || '').toLowerCase().includes(filtroEst));
 
         // Fetch abonos from movimientos (los que tienen establecimiento_nombre)
-        const { data: abonosData } = await insforge.database.from('movimientos').select('*').eq('tipo', 'abono');
-        const todosAbonos = abonosData || [];
+        const todosAbonos = await traerTodasLasFilas(() => insforge.database
+            .from('movimientos').select('*').eq('tipo', 'abono').order('id'));
 
-        // Fetch colectas para sumar abonos registrados dentro de cada colecta (datos_json.totales.abono)
-        const { data: colectasData } = await insforge.database.from('colectas').select('establecimiento, fecha, datos_json');
-        const todasColectas = colectasData || [];
+        // Fetch colectas para sumar abonos registrados dentro de cada colecta (datos_json.totales.abono).
+        // Solo desde el préstamo más antiguo: lo anterior nunca cuenta como abono.
+        const fechaMinima = prestamos.reduce((min, p) =>
+            (p.fecha_inicio && (!min || p.fecha_inicio < min)) ? p.fecha_inicio : min, null);
+        const todasColectas = !fechaMinima ? [] : await traerTodasLasFilas(() => insforge.database
+            .from('colectas').select('establecimiento, fecha, datos_json')
+            .gte('fecha', fechaMinima).order('id'));
 
         // Group movimientos-abonos by establishment (trim + lowercase)
         const abonosPorEst = {};
@@ -4510,8 +4580,9 @@ async function cargarPrestamos() {
 async function abrirModalPrestamo() {
     // Load establishments from colectas (unique names)
     try {
-        const { data } = await insforge.database.from('colectas').select('establecimiento').order('establecimiento');
-        const nombres = [...new Set((data || []).map(c => c.establecimiento).filter(Boolean))].sort();
+        const data = await traerTodasLasFilas(() => insforge.database
+            .from('colectas').select('establecimiento').order('establecimiento').order('id'));
+        const nombres = [...new Set(data.map(c => c.establecimiento).filter(Boolean))].sort();
         document.getElementById('prestamoEstablecimientoList').innerHTML =
             nombres.map(n => `<option value="${n}">`).join('');
     } catch(e) { /* lista vacía si falla */ }
@@ -4590,20 +4661,22 @@ async function verDetallePrestamo(id) {
         const estNombre = (p.establecimiento_nombre || '').trim().toLowerCase();
 
         // Abonos desde movimientos (con establecimiento_nombre)
-        const { data: abMovData } = await insforge.database.from('movimientos').select('*')
+        const abMovData = await traerTodasLasFilas(() => insforge.database.from('movimientos').select('*')
             .eq('tipo', 'abono')
             .gte('fecha', p.fecha_inicio)
-            .order('fecha', { ascending: false });
-        const abonosMov = (abMovData || [])
+            .order('fecha', { ascending: false })
+            .order('id'));
+        const abonosMov = abMovData
             .filter(a => (a.establecimiento_nombre || '').trim().toLowerCase() === estNombre)
             .map(a => ({ id: a.id, fecha: a.fecha, monto: parseFloat(a.monto) || 0, descripcion: a.descripcion || 'Abono', origen: 'Movimiento' }));
 
         // Abonos desde colectas (datos_json.totales.abono)
-        const { data: abColData } = await insforge.database.from('colectas')
+        const abColData = await traerTodasLasFilas(() => insforge.database.from('colectas')
             .select('id, establecimiento, fecha, datos_json')
             .gte('fecha', p.fecha_inicio)
-            .order('fecha', { ascending: false });
-        const abonosCol = (abColData || [])
+            .order('fecha', { ascending: false })
+            .order('id'));
+        const abonosCol = abColData
             .filter(c => (c.establecimiento || '').trim().toLowerCase() === estNombre)
             .map(c => ({ colectaId: c.id, fecha: c.fecha, monto: parseFloat(c.datos_json?.totales?.abono) || 0, descripcion: 'Abono en colecta', origen: 'Colecta' }))
             .filter(a => a.monto > 0);
@@ -4791,11 +4864,11 @@ async function abrirModalRefinanciar(id) {
 
         // Calcular saldo actual
         const estNombre = (p.establecimiento_nombre || '').trim().toLowerCase();
-        const { data: abMovData } = await insforge.database.from('movimientos').select('monto, establecimiento_nombre')
-            .eq('tipo', 'abono').gte('fecha', p.fecha_inicio);
-        const { data: abColData } = await insforge.database.from('colectas').select('establecimiento, fecha, datos_json')
-            .gte('fecha', p.fecha_inicio);
-        const totalMov = (abMovData || [])
+        const abMovData = await traerTodasLasFilas(() => insforge.database.from('movimientos').select('monto, establecimiento_nombre')
+            .eq('tipo', 'abono').gte('fecha', p.fecha_inicio).order('id'));
+        const abColData = await traerTodasLasFilas(() => insforge.database.from('colectas').select('establecimiento, fecha, datos_json')
+            .gte('fecha', p.fecha_inicio).order('id'));
+        const totalMov = abMovData
             .filter(a => (a.establecimiento_nombre || '').trim().toLowerCase() === estNombre)
             .reduce((s, a) => s + (parseFloat(a.monto) || 0), 0);
         const totalCol = (abColData || [])
