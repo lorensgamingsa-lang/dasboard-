@@ -1975,6 +1975,17 @@ function formatDateSQL(date) {
         String(d.getDate()).padStart(2, '0');
 }
 
+// Premios pagados por una máquina de una colecta: salida de pantalla más el
+// jackpot, que algunas máquinas pagan por un contador aparte (desde la APK
+// 2.1; las colectas sin `jackpot` suman 0).
+function premiosMaquina(m) {
+    const pantalla = (parseInt(m?.pantalla?.salidaActual) || 0) - (parseInt(m?.pantalla?.salidaAnterior) || 0);
+    const jackpot = m?.jackpot
+        ? (parseFloat(m.jackpot.actual) || 0) - (parseFloat(m.jackpot.anterior) || 0)
+        : 0;
+    return pantalla + jackpot;
+}
+
 // El servidor devuelve como MÁXIMO 1000 filas por consulta y no avisa cuando
 // hay más: los dashboards de 12 meses perdían los meses más recientes y las
 // deudas de préstamos salían mal. Este helper pide de a tandas con .range()
@@ -2181,7 +2192,7 @@ async function cargarListaHistoricos() {
         lista.innerHTML = registros.map(r => {
             const maq = r.datos_json?.maquinas?.[0];
             const entrada = maq ? ((parseInt(maq.pantalla?.entradaActual) || 0) - (parseInt(maq.pantalla?.entradaAnterior) || 0)) : 0;
-            const premios = maq ? ((parseInt(maq.pantalla?.salidaActual)  || 0) - (parseInt(maq.pantalla?.salidaAnterior)  || 0)) : 0;
+            const premios = maq ? (premiosMaquina(maq)) : 0;
             const [anio, mes] = r.fecha.split('-');
             const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
             const mesNom = MESES[parseInt(mes) - 1] + ' ' + anio;
@@ -2478,7 +2489,7 @@ async function cargarDashboardAdmin() {
             // Sumar entradas y salidas de máquinas
             (c.datos_json?.maquinas || []).forEach(m => {
                 totalColectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-                totalPremios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+                totalPremios   += premiosMaquina(m);
             });
         });
 
@@ -3124,7 +3135,7 @@ function renderizarComparativaGlobal(colectas) {
         if (!mes || !dataMapa[user]?.[mes]) return;
         (c.datos_json?.maquinas || []).forEach(m => {
             dataMapa[user][mes].colectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-            dataMapa[user][mes].premios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+            dataMapa[user][mes].premios   += premiosMaquina(m);
         });
     });
 
@@ -3504,7 +3515,7 @@ function renderizarTarjetasDGUsuarios(colectas) {
         if (!totales[user]) totales[user] = { colectado: 0, premios: 0 };
         (c.datos_json?.maquinas || []).forEach(m => {
             totales[user].colectado += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-            totales[user].premios   += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+            totales[user].premios   += premiosMaquina(m);
         });
     });
 
@@ -3585,7 +3596,7 @@ function renderizarChartDGUsuarios(colectas) {
         if (!mes || !dataMapa[user]?.[mes]) return;
         (c.datos_json?.maquinas || []).forEach(maq => {
             dataMapa[user][mes].colectado += (parseInt(maq.pantalla?.entradaActual) || 0) - (parseInt(maq.pantalla?.entradaAnterior) || 0);
-            dataMapa[user][mes].premios   += (parseInt(maq.pantalla?.salidaActual)  || 0) - (parseInt(maq.pantalla?.salidaAnterior)  || 0);
+            dataMapa[user][mes].premios   += premiosMaquina(maq);
         });
     });
 
@@ -3779,7 +3790,7 @@ function renderizarChartLineGlobalUsuarios(colectas) {
         if (idx < 0) return;
         (c.datos_json?.maquinas || []).forEach(m => {
             totCol[idx]  += (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-            totPrem[idx] += (parseInt(m.pantalla?.salidaActual)  || 0) - (parseInt(m.pantalla?.salidaAnterior)  || 0);
+            totPrem[idx] += premiosMaquina(m);
         });
     });
 
@@ -3934,7 +3945,7 @@ function aplicarFiltrosChapas() {
             const chapa = (m.chapa || 'sin-chapa').toLowerCase().trim();
             const juego = m.juego || 'Sin nombre';
             const entrada = (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-            const salida = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
+            const salida = premiosMaquina(m);
             const ganancia = entrada - salida;
             if (!datosPorChapa[chapa]) {
                 datosPorChapa[chapa] = { chapa, juego, gananciaBruta: 0, apariciones: 0, locales: new Set() };
@@ -4166,7 +4177,7 @@ async function verDetalleColecta(id) {
                         <tbody>
                             ${maquinas.map(m => {
                                 const ent = (parseInt(m.pantalla?.entradaActual) || 0) - (parseInt(m.pantalla?.entradaAnterior) || 0);
-                                const sal = (parseInt(m.pantalla?.salidaActual) || 0) - (parseInt(m.pantalla?.salidaAnterior) || 0);
+                                const sal = premiosMaquina(m);
                                 const gan = ent - sal;
                                 return `
                                 <tr class="border-b border-slate-700">
